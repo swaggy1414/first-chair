@@ -63,8 +63,11 @@ export default function DiscoveryLibrary() {
   const [addForm, setAddForm] = useState({ title: '', objection_text: '', category: 'General Objections' });
   const [adding, setAdding] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [libraryEntries, setLibraryEntries] = useState([]);
+  const [activeSection, setActiveSection] = useState('objections');
 
   const canImport = user?.role === 'admin' || user?.role === 'supervisor';
+  const canDeleteLibrary = ['admin', 'supervisor', 'paralegal'].includes(user?.role);
 
   const loadObjections = () => {
     const query = filterCategory ? `/objections?category=${encodeURIComponent(filterCategory)}` : '/objections';
@@ -74,7 +77,13 @@ export default function DiscoveryLibrary() {
       .finally(() => setLoading(false));
   };
 
-  useEffect(() => { loadObjections(); }, [filterCategory]);
+  const loadLibrary = () => {
+    api.get('/discovery-library')
+      .then((res) => setLibraryEntries(Array.isArray(res) ? res : []))
+      .catch(() => setLibraryEntries([]));
+  };
+
+  useEffect(() => { loadObjections(); loadLibrary(); }, [filterCategory]);
 
   const handleImport = async (e) => {
     const file = e.target.files?.[0];
@@ -128,7 +137,15 @@ export default function DiscoveryLibrary() {
     }
   };
 
-  if (loading) return <p style={{ color: 'var(--text-light)' }}>Loading objections...</p>;
+  const handleDeleteLibraryEntry = async (id) => {
+    if (!window.confirm('Remove this entry from the library?')) return;
+    try {
+      await api.del(`/discovery-library/${id}`);
+      loadLibrary();
+    } catch (err2) { setError(err2.message); }
+  };
+
+  if (loading) return <p style={{ color: 'var(--text-light)' }}>Loading...</p>;
 
   return (
     <div>
@@ -150,7 +167,54 @@ export default function DiscoveryLibrary() {
       {error && <div style={{ background: '#FED7D7', color: 'var(--red)', padding: '10px 14px', borderRadius: 6, fontSize: '0.85rem', marginBottom: 16 }}>{error}</div>}
       {importMsg && <div style={{ background: importMsg.includes('imported') ? '#C6F6D5' : 'var(--light-gray)', padding: '10px 14px', borderRadius: 6, fontSize: '0.85rem', marginBottom: 16 }}>{importMsg}</div>}
 
-      {showAddForm && (
+      <div style={{ display: 'flex', gap: 0, marginBottom: 24, borderBottom: '2px solid var(--border)' }}>
+        <button
+          onClick={() => setActiveSection('objections')}
+          style={{ padding: '10px 20px', fontSize: '0.9rem', fontWeight: activeSection === 'objections' ? 600 : 400, color: activeSection === 'objections' ? 'var(--blue)' : 'var(--text-light)', background: 'none', border: 'none', borderBottom: activeSection === 'objections' ? '2px solid var(--blue)' : '2px solid transparent', marginBottom: -2, cursor: 'pointer' }}
+        >
+          Objections ({objections.length})
+        </button>
+        <button
+          onClick={() => setActiveSection('responses')}
+          style={{ padding: '10px 20px', fontSize: '0.9rem', fontWeight: activeSection === 'responses' ? 600 : 400, color: activeSection === 'responses' ? 'var(--blue)' : 'var(--text-light)', background: 'none', border: 'none', borderBottom: activeSection === 'responses' ? '2px solid var(--blue)' : '2px solid transparent', marginBottom: -2, cursor: 'pointer' }}
+        >
+          Response Library ({libraryEntries.length})
+        </button>
+      </div>
+
+      {activeSection === 'responses' && (
+        <div>
+          {libraryEntries.length === 0 ? (
+            <p style={{ color: 'var(--text-light)', textAlign: 'center', padding: 40 }}>No discovery responses in library. Responses are auto-added when a case phase is set to closed.</p>
+          ) : (
+            <table>
+              <thead>
+                <tr><th>Case #</th><th>Client</th><th>Type</th><th>Responding Party</th><th>File</th><th>Counts</th><th>Notes</th><th></th></tr>
+              </thead>
+              <tbody>
+                {libraryEntries.map((e) => (
+                  <tr key={e.id}>
+                    <td style={{ fontWeight: 600 }}>{e.case_number}</td>
+                    <td>{e.client_name}</td>
+                    <td>{e.incident_type}</td>
+                    <td>{e.responding_party || '—'}</td>
+                    <td style={{ fontSize: '0.85rem' }}>{e.file_name}</td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>I:{e.interrogatory_count} R:{e.rfa_count} P:{e.rpd_count}</td>
+                    <td style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>{e.notes}</td>
+                    <td>
+                      {canDeleteLibrary && (
+                        <button onClick={() => handleDeleteLibraryEntry(e.id)} style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+
+      {activeSection === 'objections' && showAddForm && (
         <form onSubmit={handleAdd} style={{ background: 'var(--light-gray)', padding: 20, borderRadius: 8, marginBottom: 20 }}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'flex-end', marginBottom: 12 }}>
             <div>
@@ -172,42 +236,46 @@ export default function DiscoveryLibrary() {
         </form>
       )}
 
-      <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
-        <button style={filterCategory === '' ? btnPrimary : btnSecondary} onClick={() => setFilterCategory('')}>All ({objections.length})</button>
-        {categories.map((c) => (
-          <button key={c} style={filterCategory === c ? btnPrimary : btnSecondary} onClick={() => setFilterCategory(c)}>
-            {c}
-          </button>
-        ))}
-      </div>
+      {activeSection === 'objections' && (
+        <>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 16, flexWrap: 'wrap' }}>
+            <button style={filterCategory === '' ? btnPrimary : btnSecondary} onClick={() => setFilterCategory('')}>All ({objections.length})</button>
+            {categories.map((c) => (
+              <button key={c} style={filterCategory === c ? btnPrimary : btnSecondary} onClick={() => setFilterCategory(c)}>
+                {c}
+              </button>
+            ))}
+          </div>
 
-      {objections.length === 0 ? (
-        <p style={{ color: 'var(--text-light)', textAlign: 'center', padding: 40 }}>No objections in library. Import a Word document or add manually.</p>
-      ) : (
-        <div>
-          {objections.map((o) => (
-            <div key={o.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '14px 18px', marginBottom: 10, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{o.title}</span>
-                  <span style={categoryBadge(o.category)}>{o.category}</span>
-                  <span style={{ fontSize: '0.75rem', color: 'var(--text-light)', textTransform: 'capitalize' }}>{o.source}</span>
-                </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <span style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>Used: {o.use_count}</span>
-                  {user?.role === 'admin' && (
-                    <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>
+          {objections.length === 0 ? (
+            <p style={{ color: 'var(--text-light)', textAlign: 'center', padding: 40 }}>No objections in library. Import a Word document or add manually.</p>
+          ) : (
+            <div>
+              {objections.map((o) => (
+                <div key={o.id} style={{ border: '1px solid var(--border)', borderRadius: 8, padding: '14px 18px', marginBottom: 10, cursor: 'pointer' }} onClick={() => setExpandedId(expandedId === o.id ? null : o.id)}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontWeight: 600, fontSize: '0.9rem' }}>{o.title}</span>
+                      <span style={categoryBadge(o.category)}>{o.category}</span>
+                      <span style={{ fontSize: '0.75rem', color: 'var(--text-light)', textTransform: 'capitalize' }}>{o.source}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                      <span style={{ fontSize: '0.8rem', color: 'var(--text-light)' }}>Used: {o.use_count}</span>
+                      {user?.role === 'admin' && (
+                        <button onClick={(e) => { e.stopPropagation(); handleDelete(o.id); }} style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: '0.8rem', cursor: 'pointer' }}>Delete</button>
+                      )}
+                    </div>
+                  </div>
+                  {expandedId === o.id && (
+                    <div style={{ marginTop: 12, padding: 14, background: 'var(--light-gray)', borderRadius: 6, fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
+                      {o.objection_text}
+                    </div>
                   )}
                 </div>
-              </div>
-              {expandedId === o.id && (
-                <div style={{ marginTop: 12, padding: 14, background: 'var(--light-gray)', borderRadius: 6, fontSize: '0.85rem', lineHeight: 1.6, whiteSpace: 'pre-wrap' }}>
-                  {o.objection_text}
-                </div>
-              )}
+              ))}
             </div>
-          ))}
-        </div>
+          )}
+        </>
       )}
     </div>
   );

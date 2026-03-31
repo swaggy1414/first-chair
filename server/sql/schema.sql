@@ -232,3 +232,22 @@ CREATE TABLE IF NOT EXISTS discovery_objection_assignments (
   assigned_by UUID REFERENCES users(id),
   created_at TIMESTAMPTZ DEFAULT now()
 );
+
+-- Discovery Response Library
+CREATE TABLE IF NOT EXISTS discovery_response_library (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_number VARCHAR(50),
+  client_name VARCHAR(255),
+  incident_type VARCHAR(100),
+  responding_party VARCHAR(255),
+  file_name VARCHAR(500),
+  interrogatory_count INTEGER DEFAULT 0,
+  rfa_count INTEGER DEFAULT 0,
+  rpd_count INTEGER DEFAULT 0,
+  notes TEXT,
+  added_by UUID REFERENCES users(id),
+  source_case_id UUID REFERENCES cases(id) ON DELETE SET NULL,
+  source_response_id UUID REFERENCES discovery_responses(id) ON DELETE SET NULL,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_discovery_response_library_case ON discovery_response_library(source_case_id);

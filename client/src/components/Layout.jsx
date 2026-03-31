@@ -7,7 +7,7 @@ const navItems = [
   { to: '/records', label: 'Records' },
   { to: '/attorney-queue', label: 'Attorney Queue' },
   { to: '/capacity', label: 'Capacity' },
-  { to: '/discovery-library', label: 'Discovery Library' },
+  { to: '/discovery-library', label: 'Discovery Library', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
   { to: '/settings', label: 'Settings' },
 ];
 
@@ -94,7 +94,9 @@ export default function Layout({ children }) {
       <aside style={sidebarStyle}>
         <div style={logoStyle}>First Chair</div>
         <nav style={navStyle}>
-          {navItems.map((item) => (
+          {navItems
+            .filter((item) => !item.roles || item.roles.includes(user?.role))
+            .map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

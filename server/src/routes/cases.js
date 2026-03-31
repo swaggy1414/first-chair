@@ -93,7 +93,30 @@ export default async function casesRoutes(fastify, opts) {
       if (rows.length === 0) {
         return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Case not found' });
       }
-      return rows[0];
+
+      // Auto-copy discovery responses to library when phase changes to closed
+      const updatedCase = rows[0];
+      if (updatedCase.phase === 'closed') {
+        const { rows: responses } = await pool.query(
+          'SELECT * FROM discovery_responses WHERE case_id = $1 AND status = $2',
+          [request.params.id, 'complete']
+        );
+        for (const resp of responses) {
+          // Skip if already in library
+          const { rows: existing } = await pool.query(
+            'SELECT id FROM discovery_response_library WHERE source_response_id = $1',
+            [resp.id]
+          );
+          if (existing.length === 0) {
+            await pool.query(`
+              INSERT INTO discovery_response_library (case_number, client_name, incident_type, responding_party, file_name, interrogatory_count, rfa_count, rpd_count, notes, added_by, source_case_id, source_response_id)
+              VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+            `, [updatedCase.case_number, updatedCase.client_name, updatedCase.incident_type, resp.responding_party, resp.file_name, resp.interrogatory_count, resp.rfa_count, resp.rpd_count, 'Auto-added on case close.', request.user.id, updatedCase.id, resp.id]);
+          }
+        }
+      }
+
+      return updatedCase;
     } catch (err) {
       request.log.error(err);
       return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
