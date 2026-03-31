@@ -125,7 +125,7 @@ function InfoTab({ caseData, onSave }) {
       client_name: caseData.client_name || '',
       client_phone: caseData.client_phone || '',
       client_email: caseData.client_email || '',
-      case_type: caseData.case_type || '',
+      incident_type: caseData.incident_type || '',
       incident_date: caseData.incident_date?.slice(0, 10) || '',
       status: caseData.status || '',
       phase: caseData.phase || 'active',
@@ -277,7 +277,7 @@ function InfoTab({ caseData, onSave }) {
         <div style={fieldGroup}><label style={labelStyle}>Client Name</label><input style={inputStyle} value={form.client_name || ''} onChange={set('client_name')} disabled={!canEdit} /></div>
         <div style={fieldGroup}><label style={labelStyle}>Phone</label><input style={inputStyle} value={form.client_phone || ''} onChange={set('client_phone')} disabled={!canEdit} /></div>
         <div style={fieldGroup}><label style={labelStyle}>Email</label><input style={inputStyle} value={form.client_email || ''} onChange={set('client_email')} disabled={!canEdit} /></div>
-        <div style={fieldGroup}><label style={labelStyle}>Case Type</label><input style={inputStyle} value={form.case_type || ''} onChange={set('case_type')} disabled={!canEdit} /></div>
+        <div style={fieldGroup}><label style={labelStyle}>Case Type</label><input style={inputStyle} value={form.incident_type || ''} onChange={set('incident_type')} disabled={!canEdit} /></div>
         <div style={fieldGroup}><label style={labelStyle}>Incident Date</label><input style={inputStyle} type="date" value={form.incident_date || ''} onChange={set('incident_date')} disabled={!canEdit} /></div>
         <div style={fieldGroup}><label style={labelStyle}>Status</label>
           <select style={inputStyle} value={form.status || ''} onChange={set('status')} disabled={!canEdit}>
@@ -1278,7 +1278,7 @@ export default function CaseDetail() {
         </div>
         <p style={{ color: 'var(--text-light)', fontSize: '0.95rem' }}>
           {caseData.client_name}
-          {caseData.case_type && <span> &mdash; {caseData.case_type}</span>}
+          {caseData.incident_type && <span> &mdash; {caseData.incident_type}</span>}
         </p>
       </div>
 

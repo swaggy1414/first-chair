@@ -83,12 +83,25 @@ export default async function casesRoutes(fastify, opts) {
   // PUT /api/cases/:id
   fastify.put('/:id', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
-      const { case_number, client_name, client_phone, client_email, incident_date, incident_type, status, assigned_paralegal_id, assigned_attorney_id, flag_color, flag_note, notes, phase } = request.body;
-      const { rows } = await pool.query(`
-        UPDATE cases SET case_number = $1, client_name = $2, client_phone = $3, client_email = $4, incident_date = $5, incident_type = $6, status = $7, assigned_paralegal_id = $8, assigned_attorney_id = $9, flag_color = $10, flag_note = $11, notes = $12, phase = $13, updated_at = NOW()
-        WHERE id = $14
-        RETURNING *
-      `, [case_number, client_name, client_phone, client_email, incident_date, incident_type, status, assigned_paralegal_id, assigned_attorney_id, flag_color, flag_note, notes, phase, request.params.id]);
+      const fields = request.body;
+      const allowed = ['case_number', 'client_name', 'client_phone', 'client_email', 'incident_date', 'incident_type', 'status', 'assigned_paralegal_id', 'assigned_attorney_id', 'flag_color', 'flag_note', 'notes', 'phase'];
+      const sets = [];
+      const params = [];
+      for (const key of allowed) {
+        if (key in fields) {
+          params.push(fields[key]);
+          sets.push(`${key} = $${params.length}`);
+        }
+      }
+      if (sets.length === 0) {
+        return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'No valid fields to update' });
+      }
+      sets.push('updated_at = NOW()');
+      params.push(request.params.id);
+      const { rows } = await pool.query(
+        `UPDATE cases SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
+        params
+      );
 
       if (rows.length === 0) {
         return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Case not found' });
