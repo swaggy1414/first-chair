@@ -232,11 +232,11 @@ function SupervisorDashboard({ roleData, navigate }) {
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(160px, 1fr))', gap: 16, marginBottom: 24 }}>
         <div style={statCard}>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase' }}>New Cases</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--navy)', marginTop: 4 }}>{volume.new_cases || 0}</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--navy)', marginTop: 4 }}>{volume.new_cases_week || volume.new_cases || 0}</div>
         </div>
         <div style={statCard}>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase' }}>Closed Cases</div>
-          <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--navy)', marginTop: 4 }}>{volume.closed_cases || 0}</div>
+          <div style={{ fontSize: '1.3rem', fontWeight: 700, color: 'var(--navy)', marginTop: 4 }}>{volume.closed_week || volume.closed_cases || 0}</div>
         </div>
         <div style={statCard}>
           <div style={{ fontSize: '0.78rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase' }}>Total Active</div>
