@@ -97,13 +97,13 @@ function BriefCard({ item, onClick }) {
   return (
     <div style={cardStyle} onClick={onClick}>
       <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>
-        {item.case_number || item.caseNumber || ''}
+        {item.case_number || ''}
       </div>
       <div style={{ fontSize: '0.85rem', color: 'var(--text)', marginTop: 2 }}>
-        {item.title || item.description || ''}
+        {item.title || item.gap_description || ''}
       </div>
       <div style={{ fontSize: '0.78rem', color: 'var(--text-light)', marginTop: 4 }}>
-        Due: {formatDate(item.due_date || item.dueDate)}
+        Due: {formatDate(item.due_date)}
       </div>
     </div>
   );
@@ -112,10 +112,10 @@ function BriefCard({ item, onClick }) {
 // ─── Paralegal Dashboard ───
 function ParalegalDashboard({ roleData, navigate }) {
   const myCases = roleData.my_cases || [];
-  const overdueRecords = roleData.records_overdue || [];
+  const overdueRecords = roleData.overdue_records || [];
   const discoveryGaps = roleData.discovery_gaps || [];
   const deadlines = roleData.upcoming_deadlines || [];
-  const capacity = roleData.my_capacity || {};
+  const capacity = roleData.capacity || {};
 
   return (
     <div>
@@ -152,7 +152,7 @@ function ParalegalDashboard({ roleData, navigate }) {
                 <td style={tdStyle}>{c.case_number}</td>
                 <td style={tdStyle}>{c.client_name}</td>
                 <td style={{ ...tdStyle, textTransform: 'capitalize' }}>{c.status}</td>
-                <td style={tdStyle}>{c.case_type || '-'}</td>
+                <td style={tdStyle}>{c.incident_type || '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -165,7 +165,7 @@ function ParalegalDashboard({ roleData, navigate }) {
           <h2 style={sectionHeading}>Records Overdue</h2>
           {overdueRecords.map((r, i) => (
             <div key={i} style={{ ...cardStyle, borderLeft: '3px solid var(--red)', cursor: 'pointer' }} onClick={() => r.case_id && navigate(`/cases/${r.case_id}`)}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--red)' }}>{r.title || r.description}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--red)' }}>{r.provider_name}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>{r.case_number} - Due: {formatDate(r.due_date)}</div>
             </div>
           ))}
@@ -178,7 +178,7 @@ function ParalegalDashboard({ roleData, navigate }) {
           <h2 style={sectionHeading}>Discovery Gaps</h2>
           {discoveryGaps.map((g, i) => (
             <div key={i} style={{ ...cardStyle, borderLeft: '3px solid var(--yellow)' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{g.title || g.description}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{g.gap_description}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>{g.case_number} - Priority: {g.priority || 'high'}</div>
             </div>
           ))}
@@ -191,7 +191,7 @@ function ParalegalDashboard({ roleData, navigate }) {
           <h2 style={sectionHeading}>Upcoming Deadlines (Next 7 Days)</h2>
           {deadlines.map((d, i) => (
             <div key={i} style={cardStyle} onClick={() => d.case_id && navigate(`/cases/${d.case_id}`)}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{d.title || d.description}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{d.title}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>{d.case_number} - Due: {formatDate(d.due_date)}</div>
             </div>
           ))}
@@ -204,7 +204,7 @@ function ParalegalDashboard({ roleData, navigate }) {
 // ─── Supervisor/Admin Dashboard ───
 function SupervisorDashboard({ roleData, navigate }) {
   const paralegals = roleData.paralegal_capacity || [];
-  const overdueItems = roleData.overdue_items || [];
+  const overdueItems = roleData.overdue_all || [];
   const staleCases = roleData.stale_cases || [];
   const bottlenecks = roleData.queue_bottlenecks || [];
   const volume = roleData.weekly_volume || {};
@@ -253,7 +253,7 @@ function SupervisorDashboard({ roleData, navigate }) {
               {overdueItems.map((item, i) => (
                 <tr key={i} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => item.case_id && navigate(`/cases/${item.case_id}`)}>
                   <td style={tdStyle}>{item.case_number || '-'}</td>
-                  <td style={tdStyle}>{item.title || item.description}</td>
+                  <td style={tdStyle}>{item.title}</td>
                   <td style={{ ...tdStyle, color: 'var(--red)' }}>{formatDate(item.due_date)}</td>
                   <td style={tdStyle}>{item.assigned_to_name || '-'}</td>
                 </tr>
@@ -282,7 +282,7 @@ function SupervisorDashboard({ roleData, navigate }) {
           <h2 style={sectionHeading}>Queue Bottlenecks (7+ Days)</h2>
           {bottlenecks.map((b, i) => (
             <div key={i} style={{ ...cardStyle, borderLeft: '3px solid var(--red)' }}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{b.title || b.description}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{b.title}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>{b.case_number} - Waiting {b.days_waiting || '7+'} days</div>
             </div>
           ))}
@@ -296,7 +296,7 @@ function SupervisorDashboard({ roleData, navigate }) {
 function AttorneyDashboard({ roleData, navigate }) {
   const queue = roleData.my_queue || [];
   const myCases = roleData.my_cases || [];
-  const decisions = roleData.decisions_needed || [];
+  const decisions = roleData.critical_decisions || [];
   const activity = roleData.recent_activity || [];
 
   return (
@@ -310,7 +310,7 @@ function AttorneyDashboard({ roleData, navigate }) {
             return (
               <div key={i} style={{ ...cardStyle, borderLeft: `3px solid ${isCritical ? 'var(--red)' : 'var(--yellow)'}`, cursor: 'pointer' }} onClick={() => item.case_id && navigate(`/cases/${item.case_id}`)}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.title || item.description}</div>
+                  <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{item.title}</div>
                   <span style={{ fontSize: '0.75rem', fontWeight: 600, color: isCritical ? 'var(--red)' : 'var(--yellow)', textTransform: 'uppercase' }}>{item.priority}</span>
                 </div>
                 <div style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>{item.case_number}</div>
@@ -333,7 +333,7 @@ function AttorneyDashboard({ roleData, navigate }) {
                 <td style={tdStyle}>{c.case_number}</td>
                 <td style={tdStyle}>{c.client_name}</td>
                 <td style={{ ...tdStyle, textTransform: 'capitalize' }}>{c.status}</td>
-                <td style={tdStyle}>{c.case_type || '-'}</td>
+                <td style={tdStyle}>{c.incident_type || '-'}</td>
               </tr>
             ))}
           </tbody>
@@ -346,7 +346,7 @@ function AttorneyDashboard({ roleData, navigate }) {
           <h2 style={sectionHeading}>Decisions Needed (48+ Hours)</h2>
           {decisions.map((d, i) => (
             <div key={i} style={{ ...cardStyle, borderLeft: '3px solid var(--red)', cursor: 'pointer' }} onClick={() => d.case_id && navigate(`/cases/${d.case_id}`)}>
-              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{d.title || d.description}</div>
+              <div style={{ fontSize: '0.85rem', fontWeight: 600 }}>{d.title}</div>
               <div style={{ fontSize: '0.78rem', color: 'var(--text-light)' }}>{d.case_number} - Waiting since {formatDate(d.created_at)}</div>
             </div>
           ))}

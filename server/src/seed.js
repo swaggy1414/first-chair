@@ -35,6 +35,21 @@ async function seed() {
     `);
     console.log('Cases seeded');
 
+    // --- Clean existing seed data before re-inserting ---
+    const seedCaseIds = [
+      'c1000000-0000-0000-0000-000000000001', 'c2000000-0000-0000-0000-000000000002',
+      'c3000000-0000-0000-0000-000000000003', 'c4000000-0000-0000-0000-000000000004',
+      'c5000000-0000-0000-0000-000000000005',
+    ];
+    for (const cid of seedCaseIds) {
+      await client.query('DELETE FROM treatments WHERE case_id = $1', [cid]);
+      await client.query('DELETE FROM contact_log WHERE case_id = $1', [cid]);
+      await client.query('DELETE FROM attorney_requests WHERE case_id = $1', [cid]);
+      await client.query('DELETE FROM records_requests WHERE case_id = $1', [cid]);
+      await client.query('DELETE FROM deadlines WHERE case_id = $1', [cid]);
+    }
+    console.log('Cleaned existing seed data');
+
     // --- Deadlines ---
     await client.query(`
       INSERT INTO deadlines (case_id, title, due_date, type, status, assigned_to, notes) VALUES
