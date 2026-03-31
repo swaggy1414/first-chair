@@ -78,8 +78,56 @@ export default function CaseList() {
 
   const statuses = [...new Set(cases.map((c) => c.status).filter(Boolean))];
 
+  // Group by paralegal, sorted by case count descending
+  const grouped = {};
+  const unassigned = [];
+  for (const c of filtered) {
+    const name = c.paralegal_name;
+    if (name) {
+      if (!grouped[name]) grouped[name] = [];
+      grouped[name].push(c);
+    } else {
+      unassigned.push(c);
+    }
+  }
+  const sortedGroups = Object.entries(grouped).sort((a, b) => b[1].length - a[1].length);
+
   if (loading) return <p style={{ color: 'var(--text-light)' }}>Loading cases...</p>;
   if (error) return <p style={{ color: 'var(--red)' }}>Error: {error}</p>;
+
+  const renderTable = (rows) => (
+    <table style={{ marginBottom: 8 }}>
+      <thead>
+        <tr>
+          <th>Flag</th>
+          <th>Case #</th>
+          <th>Client</th>
+          <th>Type</th>
+          <th>Status</th>
+          <th>Attorney</th>
+          <th>Updated</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((c) => (
+          <tr key={c.id} onClick={() => navigate(`/cases/${c.id}`)} style={{ cursor: 'pointer' }}>
+            <td>
+              <span style={{
+                display: 'inline-block', width: 10, height: 10, borderRadius: '50%',
+                background: flagColors[c.flag_color] || 'var(--green)',
+              }} />
+            </td>
+            <td style={{ fontWeight: 600 }}>{c.case_number}</td>
+            <td>{c.client_name}</td>
+            <td>{c.incident_type || '—'}</td>
+            <td><StatusBadge status={c.status} /></td>
+            <td>{c.attorney_name || '—'}</td>
+            <td style={{ color: 'var(--text-light)', fontSize: '0.85rem' }}>{formatDate(c.updated_at)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
 
   return (
     <div>
@@ -104,46 +152,26 @@ export default function CaseList() {
       {filtered.length === 0 ? (
         <p style={{ color: 'var(--text-light)', padding: 20 }}>No cases found</p>
       ) : (
-        <table>
-          <thead>
-            <tr>
-              <th>Flag</th>
-              <th>Case #</th>
-              <th>Client</th>
-              <th>Type</th>
-              <th>Status</th>
-              <th>Paralegal</th>
-              <th>Attorney</th>
-              <th>Updated</th>
-            </tr>
-          </thead>
-          <tbody>
-            {filtered.map((c) => (
-              <tr
-                key={c.id}
-                onClick={() => navigate(`/cases/${c.id}`)}
-                style={{ cursor: 'pointer' }}
-              >
-                <td>
-                  <span style={{
-                    display: 'inline-block',
-                    width: 10,
-                    height: 10,
-                    borderRadius: '50%',
-                    background: flagColors[c.flag_color] || 'var(--green)',
-                  }} />
-                </td>
-                <td style={{ fontWeight: 600 }}>{c.case_number}</td>
-                <td>{c.client_name}</td>
-                <td>{c.case_type}</td>
-                <td><StatusBadge status={c.status} /></td>
-                <td>{c.paralegal_name || '—'}</td>
-                <td>{c.attorney_name || '—'}</td>
-                <td style={{ color: 'var(--text-light)', fontSize: '0.85rem' }}>{formatDate(c.updated_at)}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <div>
+          {sortedGroups.map(([name, rows]) => (
+            <div key={name} style={{ marginBottom: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--navy)' }}>{name}</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', background: 'var(--light-gray)', padding: '2px 10px', borderRadius: 12 }}>{rows.length} case{rows.length !== 1 ? 's' : ''}</span>
+              </div>
+              {renderTable(rows)}
+            </div>
+          ))}
+          {unassigned.length > 0 && (
+            <div style={{ marginBottom: 28 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+                <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--red)' }}>Unassigned</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', background: '#FED7D7', padding: '2px 10px', borderRadius: 12 }}>{unassigned.length}</span>
+              </div>
+              {renderTable(unassigned)}
+            </div>
+          )}
+        </div>
       )}
     </div>
   );
