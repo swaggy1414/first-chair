@@ -13,6 +13,7 @@ import treatmentsRoutes from './routes/treatments.js';
 import usersRoutes from './routes/users.js';
 import dashboardRoutes from './routes/dashboard.js';
 import exhibitsRoutes from './routes/exhibits.js';
+import discoveryRoutes from './routes/discovery.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -37,6 +38,7 @@ await fastify.register(treatmentsRoutes, { prefix: '/api/treatments' });
 await fastify.register(usersRoutes, { prefix: '/api/users' });
 await fastify.register(dashboardRoutes, { prefix: '/api/dashboard' });
 await fastify.register(exhibitsRoutes, { prefix: '/api/exhibits' });
+await fastify.register(discoveryRoutes, { prefix: '/api/discovery' });
 
 try {
   await fastify.listen({ port: 3001, host: '0.0.0.0' });

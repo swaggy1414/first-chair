@@ -142,3 +142,57 @@ CREATE TABLE exhibits (
 );
 
 CREATE INDEX idx_exhibits_case ON exhibits(case_id);
+
+-- Discovery Responses
+CREATE TABLE discovery_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  uploaded_by UUID REFERENCES users(id),
+  file_name VARCHAR(500) NOT NULL,
+  file_size BIGINT,
+  responding_party VARCHAR(255),
+  response_date DATE,
+  interrogatory_count INTEGER DEFAULT 0,
+  rfa_count INTEGER DEFAULT 0,
+  rpd_count INTEGER DEFAULT 0,
+  status VARCHAR(50) DEFAULT 'processing' CHECK (status IN ('processing','complete','error')),
+  processed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE discovery_gaps (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  discovery_response_id UUID NOT NULL REFERENCES discovery_responses(id) ON DELETE CASCADE,
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  gap_type VARCHAR(50) NOT NULL CHECK (gap_type IN ('missing_document','incomplete_answer','no_answer','evasive_answer','objection_only')),
+  request_number INTEGER,
+  request_type VARCHAR(50) CHECK (request_type IN ('interrogatory','rfa','rpd')),
+  original_request_text TEXT,
+  response_received TEXT,
+  gap_description TEXT,
+  priority VARCHAR(20) DEFAULT 'medium' CHECK (priority IN ('high','medium','low')),
+  status VARCHAR(50) DEFAULT 'open' CHECK (status IN ('open','client_notified','response_received','resolved','waived')),
+  assigned_to UUID REFERENCES users(id),
+  due_date DATE,
+  resolved_at TIMESTAMPTZ,
+  resolution_notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE TABLE supplementation_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  discovery_response_id UUID REFERENCES discovery_responses(id) ON DELETE CASCADE,
+  generated_email_text TEXT,
+  sent_at TIMESTAMPTZ,
+  sent_by UUID REFERENCES users(id),
+  client_response TEXT,
+  client_responded_at TIMESTAMPTZ,
+  status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft','sent','responded','closed')),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_discovery_responses_case ON discovery_responses(case_id);
+CREATE INDEX idx_discovery_gaps_response ON discovery_gaps(discovery_response_id);
+CREATE INDEX idx_discovery_gaps_case ON discovery_gaps(case_id);
+CREATE INDEX idx_supplementation_case ON supplementation_requests(case_id);
