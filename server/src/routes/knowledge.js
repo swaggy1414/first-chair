@@ -52,7 +52,7 @@ export default async function knowledgeRoutes(fastify, _opts) {
   });
 
   // POST /api/knowledge — add knowledge entry
-  fastify.post('/', { preHandler: [authorize('admin', 'supervisor', 'attorney')] }, async (request, reply) => {
+  fastify.post('/', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
       const { case_id, incident_type, injury_types, liability_factors, outcome, settlement_amount, duration_days, lessons_learned } = request.body;
       const { rows } = await pool.query(`

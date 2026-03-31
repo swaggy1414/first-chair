@@ -118,6 +118,7 @@ function InfoTab({ caseData, onSave }) {
   const [closeDraft, setCloseDraft] = useState(null);
   const [closeDraftLoading, setCloseDraftLoading] = useState(false);
   const [closeSubmitting, setCloseSubmitting] = useState(false);
+  const [closeError, setCloseError] = useState('');
 
   useEffect(() => {
     setForm({
@@ -194,6 +195,7 @@ function InfoTab({ caseData, onSave }) {
 
   const handleConfirmClose = async () => {
     setCloseSubmitting(true);
+    setCloseError('');
     try {
       // 1. Save knowledge base entry
       await api.post('/knowledge', {
@@ -210,11 +212,12 @@ function InfoTab({ caseData, onSave }) {
       await api.put(`/cases/${caseData.id}`, form);
       setShowCloseModal(false);
       setCloseDraft(null);
+      setCloseError('');
       setMsg('Case closed and knowledge saved');
       if (onSave) onSave();
       setTimeout(() => setMsg(''), 3000);
     } catch (err) {
-      setMsg(err.message);
+      setCloseError(err.message);
     } finally {
       setCloseSubmitting(false);
     }
@@ -223,6 +226,7 @@ function InfoTab({ caseData, onSave }) {
   const handleCancelClose = () => {
     setShowCloseModal(false);
     setCloseDraft(null);
+    setCloseError('');
     // Revert phase back to what it was
     setForm({ ...form, phase: caseData.phase || 'active' });
   };
@@ -325,6 +329,7 @@ function InfoTab({ caseData, onSave }) {
           <div style={{ background: 'var(--white)', borderRadius: 8, padding: 28, maxWidth: 640, width: '90%', maxHeight: '85vh', overflow: 'auto' }}>
             <h3 style={{ marginTop: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--navy)' }}>Close Case — Knowledge Base Entry</h3>
             <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: 20 }}>Review the AI-drafted knowledge entry before closing this case. Edit any field as needed.</p>
+            {closeError && <div style={{ background: '#FED7D7', color: 'var(--red)', padding: '10px 14px', borderRadius: 6, fontSize: '0.85rem', marginBottom: 16 }}>{closeError}</div>}
             {closeDraftLoading ? (
               <p style={{ color: 'var(--text-light)', textAlign: 'center', padding: 40 }}>AI is drafting knowledge entry...</p>
             ) : closeDraft ? (
