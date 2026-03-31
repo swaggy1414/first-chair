@@ -8,6 +8,7 @@ import RecordsTracker from './pages/RecordsTracker';
 import AttorneyQueue from './pages/AttorneyQueue';
 import CapacityDashboard from './pages/CapacityDashboard';
 import Settings from './pages/Settings';
+import DiscoveryLibrary from './pages/DiscoveryLibrary';
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
         <Route path="/records" element={<RecordsTracker />} />
         <Route path="/attorney-queue" element={<AttorneyQueue />} />
         <Route path="/capacity" element={<CapacityDashboard />} />
+        <Route path="/discovery-library" element={<DiscoveryLibrary />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

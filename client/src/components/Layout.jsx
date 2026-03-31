@@ -7,6 +7,7 @@ const navItems = [
   { to: '/records', label: 'Records' },
   { to: '/attorney-queue', label: 'Attorney Queue' },
   { to: '/capacity', label: 'Capacity' },
+  { to: '/discovery-library', label: 'Discovery Library' },
   { to: '/settings', label: 'Settings' },
 ];
 
