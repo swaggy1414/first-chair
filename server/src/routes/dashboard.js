@@ -7,7 +7,7 @@ export default async function dashboardRoutes(fastify, opts) {
   // GET /api/dashboard/morning-brief
   fastify.get('/morning-brief', async (request, reply) => {
     try {
-      const [todayDeadlines, weekDeadlines, overdueItems, flaggedCases, recentContacts] = await Promise.all([
+      const [todayDeadlines, weekDeadlines, overdueItems, flaggedCases, recentContacts, questionnaireFollowups, questionnaireOverdue] = await Promise.all([
         // Today's deadlines
         pool.query(`
           SELECT d.*, c.case_number, c.client_name, u.name AS assigned_to_name
@@ -53,6 +53,26 @@ export default async function dashboardRoutes(fastify, opts) {
           LEFT JOIN users u ON cl.logged_by = u.id
           WHERE cl.contact_date >= CURRENT_DATE - INTERVAL '7 days'
           ORDER BY cl.contact_date DESC
+        `),
+        // Questionnaire follow-ups needed (sent 5+ days ago, no follow-up yet)
+        pool.query(`
+          SELECT dq.*, c.case_number, c.client_name
+          FROM discovery_questionnaires dq
+          JOIN cases c ON dq.case_id = c.id
+          WHERE dq.sent_at + INTERVAL '5 days' <= CURRENT_DATE
+            AND dq.follow_up_sent_at IS NULL
+            AND dq.status = 'sent'
+          ORDER BY dq.sent_at ASC
+        `),
+        // Questionnaire overdue (written_discovery phase, latest questionnaire not responded, 10+ days)
+        pool.query(`
+          SELECT DISTINCT ON (c.id) c.id, c.case_number, c.client_name, dq.sent_at, dq.status AS questionnaire_status
+          FROM cases c
+          JOIN discovery_questionnaires dq ON dq.case_id = c.id
+          WHERE c.phase = 'written_discovery'
+            AND dq.status != 'responded'
+            AND dq.sent_at + INTERVAL '10 days' < NOW()
+          ORDER BY c.id, dq.sent_at DESC
         `)
       ]);
 
@@ -62,6 +82,8 @@ export default async function dashboardRoutes(fastify, opts) {
         overdue_items: overdueItems.rows,
         flagged_cases: flaggedCases.rows,
         recent_contacts: recentContacts.rows,
+        questionnaire_followups: questionnaireFollowups.rows,
+        questionnaire_overdue: questionnaireOverdue.rows,
       };
     } catch (err) {
       request.log.error(err);

@@ -197,3 +197,37 @@ CREATE INDEX idx_discovery_responses_case ON discovery_responses(case_id);
 CREATE INDEX idx_discovery_gaps_response ON discovery_gaps(discovery_response_id);
 CREATE INDEX idx_discovery_gaps_case ON discovery_gaps(case_id);
 CREATE INDEX idx_supplementation_case ON supplementation_requests(case_id);
+
+-- Discovery Questionnaires
+CREATE TABLE IF NOT EXISTS discovery_questionnaires (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  sent_at TIMESTAMPTZ,
+  sent_by UUID REFERENCES users(id),
+  client_email VARCHAR(255),
+  status VARCHAR(50) DEFAULT 'sent' CHECK (status IN ('sent','responded','overdue')),
+  follow_up_sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_discovery_questionnaires_case ON discovery_questionnaires(case_id);
+
+-- Objections
+CREATE TABLE IF NOT EXISTS objections (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(255) NOT NULL,
+  objection_text TEXT NOT NULL,
+  category VARCHAR(100) CHECK (category IN ('General Objections','Interrogatory Objections','RFA Objections','RPD Objections','Privilege','Other')),
+  use_count INTEGER DEFAULT 0,
+  source VARCHAR(50) DEFAULT 'manual' CHECK (source IN ('imported','manual')),
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Discovery Objection Assignments
+CREATE TABLE IF NOT EXISTS discovery_objection_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  discovery_gap_id UUID NOT NULL REFERENCES discovery_gaps(id) ON DELETE CASCADE,
+  objection_id UUID NOT NULL REFERENCES objections(id) ON DELETE CASCADE,
+  assigned_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);

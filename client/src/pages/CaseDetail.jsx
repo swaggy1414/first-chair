@@ -100,6 +100,8 @@ function InfoTab({ caseData, onSave }) {
   const [saving, setSaving] = useState(false);
   const [msg, setMsg] = useState('');
 
+  const [questionnaireMsg, setQuestionnaireMsg] = useState('');
+
   useEffect(() => {
     setForm({
       client_name: caseData.client_name || '',
@@ -108,6 +110,7 @@ function InfoTab({ caseData, onSave }) {
       case_type: caseData.case_type || '',
       incident_date: caseData.incident_date?.slice(0, 10) || '',
       status: caseData.status || '',
+      phase: caseData.phase || 'active',
       notes: caseData.notes || '',
     });
   }, [caseData]);
@@ -146,15 +149,38 @@ function InfoTab({ caseData, onSave }) {
             <option value="closed">Closed</option>
           </select>
         </div>
+        <div style={fieldGroup}><label style={labelStyle}>Phase</label>
+          <select style={inputStyle} value={form.phase || 'active'} onChange={set('phase')} disabled={!canEdit}>
+            <option value="active">Active</option>
+            <option value="written_discovery">Written Discovery</option>
+            <option value="deposition">Deposition</option>
+            <option value="mediation">Mediation</option>
+            <option value="trial">Trial</option>
+            <option value="closed">Closed</option>
+          </select>
+        </div>
       </div>
       <div style={fieldGroup}>
         <label style={labelStyle}>Notes</label>
         <textarea style={{ ...inputStyle, minHeight: 100, resize: 'vertical' }} value={form.notes || ''} onChange={set('notes')} disabled={!canEdit} />
       </div>
       {canEdit && (
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <button style={btnPrimary} onClick={handleSave} disabled={saving}>{saving ? 'Saving...' : 'Save Changes'}</button>
+          {form.phase === 'written_discovery' && (
+            <button style={{ ...btnPrimary, background: 'var(--green)' }} onClick={async () => {
+              setQuestionnaireMsg('');
+              try {
+                await api.post(`/questionnaires/send/${caseData.id}`);
+                setQuestionnaireMsg('Questionnaire sent successfully');
+                setTimeout(() => setQuestionnaireMsg(''), 3000);
+              } catch (err) {
+                setQuestionnaireMsg(err.message);
+              }
+            }}>Send Discovery Questionnaire</button>
+          )}
           {msg && <span style={{ fontSize: '0.85rem', color: msg === 'Saved' ? 'var(--green)' : 'var(--red)' }}>{msg}</span>}
+          {questionnaireMsg && <span style={{ fontSize: '0.85rem', color: questionnaireMsg.includes('success') ? 'var(--green)' : 'var(--red)' }}>{questionnaireMsg}</span>}
         </div>
       )}
     </div>
