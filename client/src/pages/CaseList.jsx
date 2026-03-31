@@ -157,7 +157,7 @@ export default function CaseList() {
             <div key={name} style={{ marginBottom: 28 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
                 <span style={{ fontSize: '1rem', fontWeight: 700, color: 'var(--navy)' }}>{name}</span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', background: 'var(--light-gray)', padding: '2px 10px', borderRadius: 12 }}>{rows.length} case{rows.length !== 1 ? 's' : ''}</span>
+                <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', background: 'var(--light-gray)', padding: '2px 10px', borderRadius: 12 }}>{rows.length} total case{rows.length !== 1 ? 's' : ''}</span>
               </div>
               {renderTable(rows)}
             </div>

@@ -267,7 +267,7 @@ function SupervisorDashboard({ roleData, navigate }) {
           <div key={p.id} style={{ marginBottom: 24 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
               <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--navy)' }}>{p.name}</span>
-              <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', background: 'var(--light-gray)', padding: '2px 10px', borderRadius: 12 }}>{cases.length} case{cases.length !== 1 ? 's' : ''}</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', background: 'var(--light-gray)', padding: '2px 10px', borderRadius: 12 }}>{cases.length} active case{cases.length !== 1 ? 's' : ''}</span>
             </div>
             {cases.length === 0 ? (
               <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', paddingLeft: 12 }}>No active cases</p>
