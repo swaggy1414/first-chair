@@ -732,7 +732,6 @@ function DiscoveryTab({ caseId }) {
   const [analyzing, setAnalyzing] = useState(null);
   const [generating, setGenerating] = useState(null);
   const [emailPreview, setEmailPreview] = useState(null);
-  const [selectedFile, setSelectedFile] = useState(null);
 
   const load = useCallback(() => {
     api.get(`/discovery/case/${caseId}/gaps`)
@@ -743,27 +742,24 @@ function DiscoveryTab({ caseId }) {
 
   useEffect(() => { load(); }, [load]);
 
-  const handleFileSelect = (e) => {
-    const file = e.target.files?.[0];
-    if (file) setSelectedFile(file);
-    e.target.value = '';
-  };
-
-  const handleUpload = async () => {
-    if (!selectedFile) return;
+  const handleUpload = async (e) => {
+    e.preventDefault();
+    const fileInput = e.target.elements.file;
+    const file = fileInput?.files?.[0];
+    if (!file) return;
     setUploading(true);
     setError('');
     try {
       const formData = new FormData();
-      formData.append('file', selectedFile);
+      formData.append('file', file);
       const token = localStorage.getItem('token');
       const res = await fetch(`http://localhost:3001/api/discovery/upload/${caseId}`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
       });
-      if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || 'Upload failed'); }
-      setSelectedFile(null);
+      if (!res.ok) { const err2 = await res.json().catch(() => ({})); throw new Error(err2.message || 'Upload failed'); }
+      fileInput.value = '';
       load();
-    } catch (err) { setError(err.message); }
+    } catch (err2) { setError(err2.message); }
     finally { setUploading(false); }
   };
 
@@ -804,32 +800,12 @@ function DiscoveryTab({ caseId }) {
 
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Discovery Responses ({data.responses.length})</h3>
-        <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
-          <label style={{ ...btnSecondary, cursor: 'pointer' }}>
-            {selectedFile ? selectedFile.name : 'Select File'}
-            <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={handleFileSelect} />
-          </label>
-          {selectedFile && (
-            <>
-              <button
-                type="button"
-                onClick={handleUpload}
-                disabled={uploading}
-                style={{ ...btnPrimary, cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}
-              >
-                {uploading ? 'Uploading...' : 'Upload'}
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedFile(null)}
-                disabled={uploading}
-                style={{ ...btnSecondary, cursor: 'pointer' }}
-              >
-                Cancel
-              </button>
-            </>
-          )}
-        </div>
+        <form onSubmit={handleUpload} style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required style={{ fontSize: '0.85rem' }} />
+          <button type="submit" disabled={uploading} style={{ ...btnPrimary, opacity: uploading ? 0.6 : 1 }}>
+            {uploading ? 'Uploading...' : 'Upload'}
+          </button>
+        </form>
       </div>
 
       {data.responses.length === 0 ? (
