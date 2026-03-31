@@ -159,7 +159,7 @@ export default function KnowledgeBase() {
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>{s.incident_type || 'Unknown'}</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--navy)' }}>{s.count} cases</div>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginTop: 4 }}>
-                  Avg Settlement: {formatCurrency(s.avg_settlement)} | Avg Duration: {s.avg_duration ? Math.round(s.avg_duration) + 'd' : '-'}
+                  Avg Settlement: {formatCurrency(s.avg_settlement)} | Avg Duration: {(s.avg_duration || s.avg_days) ? Math.round(s.avg_duration || s.avg_days) + 'd' : '-'}
                 </div>
               </div>
             ))}
@@ -185,7 +185,7 @@ export default function KnowledgeBase() {
               <div style={statCard}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Top Lessons Learned</div>
                 {stats.top_lessons.map((l, i) => (
-                  <div key={i} style={{ fontSize: '0.85rem', color: 'var(--text)', marginBottom: 4 }}>{l}</div>
+                  <div key={i} style={{ fontSize: '0.85rem', color: 'var(--text)', marginBottom: 4 }}>{typeof l === 'string' ? l : l.lessons_learned || ''}</div>
                 ))}
               </div>
             )}
