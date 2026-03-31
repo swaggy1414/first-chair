@@ -30,6 +30,7 @@ CREATE TABLE cases (
   status VARCHAR(50) DEFAULT 'intake' CHECK (status IN ('intake','active','treatment','demand','litigation','settled','closed')),
   assigned_paralegal_id UUID REFERENCES users(id),
   assigned_attorney_id UUID REFERENCES users(id),
+  phase VARCHAR(50) DEFAULT 'active',
   flag_color VARCHAR(20),
   flag_note TEXT,
   notes TEXT,
