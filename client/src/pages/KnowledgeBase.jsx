@@ -154,7 +154,7 @@ export default function KnowledgeBase() {
         <div style={{ marginBottom: 28 }}>
           <h2 style={{ fontSize: '1.1rem', fontWeight: 600, color: 'var(--navy)', marginBottom: 16 }}>Statistics</h2>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginBottom: 16 }}>
-            {stats.by_incident_type && stats.by_incident_type.map((s, i) => (
+            {(stats.by_type || stats.by_incident_type || []).map((s, i) => (
               <div key={i} style={statCard}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>{s.incident_type || 'Unknown'}</div>
                 <div style={{ fontSize: '1.1rem', fontWeight: 700, color: 'var(--navy)' }}>{s.count} cases</div>
@@ -165,20 +165,20 @@ export default function KnowledgeBase() {
             ))}
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
-            {stats.outcomes && (
+            {(stats.by_outcome || stats.outcomes || []).length > 0 && (
               <div style={statCard}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Outcomes</div>
-                {stats.outcomes.map((o, i) => (
+                {(stats.by_outcome || stats.outcomes || []).map((o, i) => (
                   <div key={i} style={{ fontSize: '0.85rem', color: 'var(--text)' }}>{o.outcome}: {o.count}</div>
                 ))}
               </div>
             )}
-            {stats.duration && (
+            {(stats.duration_stats || stats.duration) && (
               <div style={statCard}>
                 <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase', marginBottom: 6 }}>Duration</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text)' }}>Avg: {Math.round(stats.duration.avg || 0)} days</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text)' }}>Min: {stats.duration.min || 0} days</div>
-                <div style={{ fontSize: '0.85rem', color: 'var(--text)' }}>Max: {stats.duration.max || 0} days</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text)' }}>Avg: {Math.round((stats.duration_stats || stats.duration)?.avg_duration || (stats.duration_stats || stats.duration)?.avg || 0)} days</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text)' }}>Min: {(stats.duration_stats || stats.duration)?.min_duration || (stats.duration_stats || stats.duration)?.min || 0} days</div>
+                <div style={{ fontSize: '0.85rem', color: 'var(--text)' }}>Max: {(stats.duration_stats || stats.duration)?.max_duration || (stats.duration_stats || stats.duration)?.max || 0} days</div>
               </div>
             )}
             {stats.top_lessons && stats.top_lessons.length > 0 && (
