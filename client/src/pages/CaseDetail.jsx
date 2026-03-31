@@ -805,22 +805,29 @@ function DiscoveryTab({ caseId }) {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 }}>
         <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Discovery Responses ({data.responses.length})</h3>
         <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+          <label style={{ ...btnSecondary, cursor: 'pointer' }}>
+            {selectedFile ? selectedFile.name : 'Select File'}
+            <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={handleFileSelect} />
+          </label>
           {selectedFile && (
             <>
-              <span style={{ fontSize: '0.85rem', color: 'var(--text)' }}>{selectedFile.name}</span>
-              <button onClick={handleUpload} disabled={uploading} style={{ ...btnPrimary, fontSize: '0.85rem', padding: '8px 18px' }}>
+              <button
+                type="button"
+                onClick={handleUpload}
+                disabled={uploading}
+                style={{ ...btnPrimary, cursor: 'pointer', opacity: uploading ? 0.6 : 1 }}
+              >
                 {uploading ? 'Uploading...' : 'Upload'}
               </button>
-              <button onClick={() => setSelectedFile(null)} disabled={uploading} style={{ ...btnSecondary, fontSize: '0.85rem', padding: '8px 14px' }}>
+              <button
+                type="button"
+                onClick={() => setSelectedFile(null)}
+                disabled={uploading}
+                style={{ ...btnSecondary, cursor: 'pointer' }}
+              >
                 Cancel
               </button>
             </>
-          )}
-          {!selectedFile && (
-            <label style={{ ...btnPrimary, cursor: 'pointer' }}>
-              Select File
-              <input type="file" accept=".pdf,.doc,.docx,.txt" style={{ display: 'none' }} onChange={handleFileSelect} />
-            </label>
           )}
         </div>
       </div>
