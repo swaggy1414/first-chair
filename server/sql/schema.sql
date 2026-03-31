@@ -150,6 +150,7 @@ CREATE TABLE discovery_responses (
   uploaded_by UUID REFERENCES users(id),
   file_name VARCHAR(500) NOT NULL,
   file_size BIGINT,
+  file_path VARCHAR(1000),
   responding_party VARCHAR(255),
   response_date DATE,
   interrogatory_count INTEGER DEFAULT 0,

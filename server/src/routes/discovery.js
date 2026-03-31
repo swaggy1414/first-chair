@@ -1,4 +1,4 @@
-import { writeFile, mkdir } from 'fs/promises';
+import { writeFile, mkdir, unlink } from 'fs/promises';
 import { join, extname } from 'path';
 import { randomUUID } from 'crypto';
 import Anthropic from '@anthropic-ai/sdk';
@@ -45,11 +45,12 @@ export default async function discoveryRoutes(fastify, _opts) {
       await mkdir(UPLOAD_DIR, { recursive: true });
       await writeFile(join(UPLOAD_DIR, storedName), buffer);
 
+      const filePath = join(UPLOAD_DIR, storedName);
       const { rows } = await pool.query(`
-        INSERT INTO discovery_responses (case_id, uploaded_by, file_name, file_size, status)
-        VALUES ($1, $2, $3, $4, 'processing')
+        INSERT INTO discovery_responses (case_id, uploaded_by, file_name, file_size, file_path, status)
+        VALUES ($1, $2, $3, $4, $5, 'processing')
         RETURNING *
-      `, [caseId, request.user.id, file.filename, buffer.length]);
+      `, [caseId, request.user.id, file.filename, buffer.length, filePath]);
 
       return reply.status(201).send(rows[0]);
     } catch (err) {
@@ -257,13 +258,25 @@ Keep it concise, professional, and easy for a non-lawyer to understand.`;
   });
 
   // DELETE /api/discovery/response/:responseId
-  fastify.delete('/response/:responseId', { preHandler: [authorize('admin', 'supervisor')] }, async (request, reply) => {
+  fastify.delete('/response/:responseId', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
-      const { rowCount } = await pool.query('DELETE FROM discovery_responses WHERE id = $1', [request.params.responseId]);
-      if (rowCount === 0) {
+      const { rows } = await pool.query('SELECT file_path FROM discovery_responses WHERE id = $1', [request.params.responseId]);
+      if (rows.length === 0) {
         return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Discovery response not found' });
       }
-      return { message: 'Discovery response and associated gaps deleted' };
+
+      // Delete local file
+      if (rows[0].file_path) {
+        try { await unlink(rows[0].file_path); } catch { /* file may not exist */ }
+      }
+
+      // Delete supplementation requests referencing this response
+      await pool.query('DELETE FROM supplementation_requests WHERE discovery_response_id = $1', [request.params.responseId]);
+
+      // Delete response (gaps cascade automatically)
+      await pool.query('DELETE FROM discovery_responses WHERE id = $1', [request.params.responseId]);
+
+      return { message: 'Discovery response, gaps, and file deleted' };
     } catch (err) {
       request.log.error(err);
       return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
