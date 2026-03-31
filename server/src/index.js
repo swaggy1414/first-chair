@@ -17,6 +17,8 @@ import discoveryRoutes from './routes/discovery.js';
 import questionnairesRoutes from './routes/questionnaires.js';
 import objectionsRoutes from './routes/objections.js';
 import discoveryLibraryRoutes from './routes/discovery-library.js';
+import knowledgeRoutes from './routes/knowledge.js';
+import attorneyNotesRoutes from './routes/attorney-notes.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -45,6 +47,8 @@ await fastify.register(discoveryRoutes, { prefix: '/api/discovery' });
 await fastify.register(questionnairesRoutes, { prefix: '/api/questionnaires' });
 await fastify.register(objectionsRoutes, { prefix: '/api/objections' });
 await fastify.register(discoveryLibraryRoutes, { prefix: '/api/discovery-library' });
+await fastify.register(knowledgeRoutes, { prefix: '/api/knowledge' });
+await fastify.register(attorneyNotesRoutes, { prefix: '/api/attorney-notes' });
 
 try {
   await fastify.listen({ port: 3001, host: '0.0.0.0' });

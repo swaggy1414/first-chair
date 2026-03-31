@@ -8,6 +8,7 @@ const navItems = [
   { to: '/attorney-queue', label: 'Attorney Queue' },
   { to: '/capacity', label: 'Capacity' },
   { to: '/discovery-library', label: 'Discovery Library', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/knowledge-base', label: 'Knowledge Base', roles: ['admin', 'supervisor'] },
   { to: '/settings', label: 'Settings' },
 ];
 

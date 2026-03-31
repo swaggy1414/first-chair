@@ -9,6 +9,7 @@ import AttorneyQueue from './pages/AttorneyQueue';
 import CapacityDashboard from './pages/CapacityDashboard';
 import Settings from './pages/Settings';
 import DiscoveryLibrary from './pages/DiscoveryLibrary';
+import KnowledgeBase from './pages/KnowledgeBase';
 
 export default function App() {
   return (
@@ -22,6 +23,7 @@ export default function App() {
         <Route path="/attorney-queue" element={<AttorneyQueue />} />
         <Route path="/capacity" element={<CapacityDashboard />} />
         <Route path="/discovery-library" element={<DiscoveryLibrary />} />
+        <Route path="/knowledge-base" element={<KnowledgeBase />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

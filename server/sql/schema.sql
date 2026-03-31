@@ -251,3 +251,43 @@ CREATE TABLE IF NOT EXISTS discovery_response_library (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_discovery_response_library_case ON discovery_response_library(source_case_id);
+
+-- Case Knowledge Base
+CREATE TABLE IF NOT EXISTS case_knowledge (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  incident_type VARCHAR(100),
+  injury_types TEXT,
+  liability_factors TEXT,
+  outcome VARCHAR(100),
+  settlement_amount NUMERIC,
+  duration_days INTEGER,
+  lessons_learned TEXT,
+  created_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_case_knowledge_case ON case_knowledge(case_id);
+CREATE INDEX IF NOT EXISTS idx_case_knowledge_type ON case_knowledge(incident_type);
+
+-- Attorney Notes
+CREATE TABLE IF NOT EXISTS attorney_notes (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  attorney_id UUID NOT NULL REFERENCES users(id),
+  note_text TEXT NOT NULL,
+  note_type VARCHAR(50) DEFAULT 'general' CHECK (note_type IN ('strategy','risk','settlement','general')),
+  is_private BOOLEAN DEFAULT false,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_attorney_notes_case ON attorney_notes(case_id);
+
+-- Case Similarity Log
+CREATE TABLE IF NOT EXISTS case_similarity_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  source_case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  similar_case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  similarity_score NUMERIC,
+  matched_factors TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_case_similarity_source ON case_similarity_log(source_case_id);
