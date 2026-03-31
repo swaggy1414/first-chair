@@ -54,7 +54,7 @@ export default function AttorneyQueue() {
   const [editing, setEditing] = useState(null);
 
   const load = () => {
-    api.get('/attorney-queue')
+    api.get('/attorney-requests')
       .then((res) => setRequests(Array.isArray(res) ? res : res.requests || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -64,7 +64,7 @@ export default function AttorneyQueue() {
 
   const handleUpdate = async (id, updates) => {
     try {
-      await api.put(`/attorney-queue/${id}`, updates);
+      await api.put(`/attorney-requests/${id}`, updates);
       setEditing(null);
       load();
     } catch (err) {

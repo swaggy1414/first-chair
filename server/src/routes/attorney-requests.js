@@ -66,13 +66,24 @@ export default async function attorneyRequestsRoutes(fastify, opts) {
   // PUT /api/attorney-requests/:id
   fastify.put('/:id', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
-      const { case_id, requested_by, priority, title, description, status, due_date, completed_at } = request.body;
-      const { rows } = await pool.query(`
-        UPDATE attorney_requests SET case_id = $1, requested_by = $2, priority = $3, title = $4, description = $5, status = $6, due_date = $7, completed_at = $8, updated_at = NOW()
-        WHERE id = $9
-        RETURNING *
-      `, [case_id, requested_by, priority, title, description, status, due_date, completed_at, request.params.id]);
-
+      const fields = request.body;
+      const allowed = ['case_id', 'requested_by', 'priority', 'title', 'description', 'status', 'due_date', 'completed_at'];
+      const sets = [];
+      const params = [];
+      for (const key of allowed) {
+        if (key in fields) {
+          params.push(fields[key]);
+          sets.push(`${key} = $${params.length}`);
+        }
+      }
+      if (sets.length === 0) {
+        return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'No valid fields to update' });
+      }
+      params.push(request.params.id);
+      const { rows } = await pool.query(
+        `UPDATE attorney_requests SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`,
+        params
+      );
       if (rows.length === 0) {
         return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Attorney request not found' });
       }

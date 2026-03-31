@@ -122,3 +122,23 @@ CREATE INDEX idx_attorney_req_priority ON attorney_requests(priority);
 CREATE INDEX idx_contact_log_case ON contact_log(case_id);
 CREATE INDEX idx_treatments_case ON treatments(case_id);
 CREATE INDEX idx_refresh_tokens_user ON refresh_tokens(user_id);
+
+-- Exhibits
+CREATE TABLE exhibits (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  file_name VARCHAR(500) NOT NULL,
+  file_path VARCHAR(1000),
+  file_size BIGINT,
+  mime_type VARCHAR(200),
+  category VARCHAR(100) CHECK (category IN ('Medical Records','Police Report','Photos','Bills and Invoices','Correspondence','Expert Reports','Deposition','Other')),
+  ai_classification VARCHAR(100),
+  ai_confidence INTEGER,
+  ai_summary TEXT,
+  uploaded_by UUID REFERENCES users(id),
+  onedrive_file_id VARCHAR(500),
+  onedrive_url VARCHAR(1000),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+CREATE INDEX idx_exhibits_case ON exhibits(case_id);

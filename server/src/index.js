@@ -1,6 +1,7 @@
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
+import multipart from '@fastify/multipart';
 
 import authRoutes from './routes/auth.js';
 import casesRoutes from './routes/cases.js';
@@ -11,6 +12,7 @@ import contactsRoutes from './routes/contacts.js';
 import treatmentsRoutes from './routes/treatments.js';
 import usersRoutes from './routes/users.js';
 import dashboardRoutes from './routes/dashboard.js';
+import exhibitsRoutes from './routes/exhibits.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -23,6 +25,8 @@ await fastify.register(jwt, {
   sign: { expiresIn: '8h' },
 });
 
+await fastify.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
+
 await fastify.register(authRoutes, { prefix: '/api/auth' });
 await fastify.register(casesRoutes, { prefix: '/api/cases' });
 await fastify.register(deadlinesRoutes, { prefix: '/api/deadlines' });
@@ -32,6 +36,7 @@ await fastify.register(contactsRoutes, { prefix: '/api/contacts' });
 await fastify.register(treatmentsRoutes, { prefix: '/api/treatments' });
 await fastify.register(usersRoutes, { prefix: '/api/users' });
 await fastify.register(dashboardRoutes, { prefix: '/api/dashboard' });
+await fastify.register(exhibitsRoutes, { prefix: '/api/exhibits' });
 
 try {
   await fastify.listen({ port: 3001, host: '0.0.0.0' });
