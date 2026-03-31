@@ -202,12 +202,28 @@ function ParalegalDashboard({ roleData, navigate }) {
 }
 
 // ─── Supervisor/Admin Dashboard ───
+const flagDot = (color) => color ? { display: 'inline-block', width: 8, height: 8, borderRadius: '50%', background: color === 'red' ? 'var(--red)' : color === 'yellow' ? 'var(--yellow)' : 'var(--green)', marginRight: 8 } : { display: 'none' };
+
 function SupervisorDashboard({ roleData, navigate }) {
   const paralegals = roleData.paralegal_capacity || [];
   const overdueItems = roleData.overdue_all || [];
   const staleCases = roleData.stale_cases || [];
   const bottlenecks = roleData.queue_bottlenecks || [];
   const volume = roleData.weekly_volume || {};
+  const allCases = roleData.all_active_cases || [];
+
+  // Group cases by paralegal, sorted by workload (highest first)
+  const sortedParalegals = [...paralegals].sort((a, b) => (Number(b.active_cases) || 0) - (Number(a.active_cases) || 0));
+  const casesByParalegal = {};
+  const unassigned = [];
+  for (const c of allCases) {
+    if (c.assigned_paralegal_id && c.paralegal_name) {
+      if (!casesByParalegal[c.paralegal_name]) casesByParalegal[c.paralegal_name] = [];
+      casesByParalegal[c.paralegal_name].push(c);
+    } else {
+      unassigned.push(c);
+    }
+  }
 
   return (
     <div>
@@ -242,6 +258,61 @@ function SupervisorDashboard({ roleData, navigate }) {
         ))}
         {paralegals.length === 0 && <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>No paralegal data available</p>}
       </div>
+
+      {/* Cases by Paralegal */}
+      <h2 style={sectionHeading}>Cases by Paralegal</h2>
+      {sortedParalegals.map((p) => {
+        const cases = casesByParalegal[p.name] || [];
+        return (
+          <div key={p.id} style={{ marginBottom: 24 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+              <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--navy)' }}>{p.name}</span>
+              <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', background: 'var(--light-gray)', padding: '2px 10px', borderRadius: 12 }}>{cases.length} case{cases.length !== 1 ? 's' : ''}</span>
+            </div>
+            {cases.length === 0 ? (
+              <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', paddingLeft: 12 }}>No active cases</p>
+            ) : (
+              <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 8 }}>
+                <thead><tr style={{ borderBottom: '2px solid var(--border)' }}><th style={thStyle}>Flag</th><th style={thStyle}>Case #</th><th style={thStyle}>Client</th><th style={thStyle}>Type</th><th style={thStyle}>Status</th><th style={thStyle}>Phase</th><th style={thStyle}>Attorney</th></tr></thead>
+                <tbody>
+                  {cases.map((c) => (
+                    <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => navigate(`/cases/${c.id}`)}>
+                      <td style={tdStyle}><span style={flagDot(c.flag_color)} /></td>
+                      <td style={{ ...tdStyle, fontWeight: 600 }}>{c.case_number}</td>
+                      <td style={tdStyle}>{c.client_name}</td>
+                      <td style={tdStyle}>{c.incident_type || '-'}</td>
+                      <td style={{ ...tdStyle, textTransform: 'capitalize' }}>{c.status}</td>
+                      <td style={{ ...tdStyle, textTransform: 'capitalize' }}>{(c.phase || '').replace(/_/g, ' ')}</td>
+                      <td style={tdStyle}>{c.attorney_name || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        );
+      })}
+      {unassigned.length > 0 && (
+        <div style={{ marginBottom: 24 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10 }}>
+            <span style={{ fontSize: '0.95rem', fontWeight: 700, color: 'var(--red)' }}>Unassigned</span>
+            <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', background: '#FED7D7', padding: '2px 10px', borderRadius: 12 }}>{unassigned.length}</span>
+          </div>
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead><tr style={{ borderBottom: '2px solid var(--border)' }}><th style={thStyle}>Case #</th><th style={thStyle}>Client</th><th style={thStyle}>Type</th><th style={thStyle}>Status</th></tr></thead>
+            <tbody>
+              {unassigned.map((c) => (
+                <tr key={c.id} style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }} onClick={() => navigate(`/cases/${c.id}`)}>
+                  <td style={{ ...tdStyle, fontWeight: 600 }}>{c.case_number}</td>
+                  <td style={tdStyle}>{c.client_name}</td>
+                  <td style={tdStyle}>{c.incident_type || '-'}</td>
+                  <td style={{ ...tdStyle, textTransform: 'capitalize' }}>{c.status}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
 
       {/* Overdue Items */}
       {overdueItems.length > 0 && (
