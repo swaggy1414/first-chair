@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk';
 import pool from '../db.js';
 import { authenticate, authorize } from '../middleware/auth.js';
 
@@ -59,6 +60,89 @@ export default async function knowledgeRoutes(fastify, _opts) {
         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING *
       `, [case_id, incident_type, injury_types, liability_factors, outcome, settlement_amount || null, duration_days || null, lessons_learned, request.user.id]);
       return reply.status(201).send(rows[0]);
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
+    }
+  });
+
+  // POST /api/knowledge/draft/:caseId — AI drafts a knowledge base entry
+  fastify.post('/draft/:caseId', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
+    try {
+      const { caseId } = request.params;
+      const { rows: caseRows } = await pool.query('SELECT * FROM cases WHERE id = $1', [caseId]);
+      if (caseRows.length === 0) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Case not found' });
+      const c = caseRows[0];
+
+      // Gather context
+      const [treatments, gaps, notes, records] = await Promise.all([
+        pool.query('SELECT provider_name, treatment_type, status, notes FROM treatments WHERE case_id = $1', [caseId]),
+        pool.query('SELECT COUNT(*) as count FROM discovery_gaps WHERE case_id = $1 AND status = $2', [caseId, 'open']),
+        pool.query("SELECT note_text, note_type FROM attorney_notes WHERE case_id = $1 AND is_private = false ORDER BY created_at DESC LIMIT 10", [caseId]),
+        pool.query('SELECT COUNT(*) as count FROM records_requests WHERE case_id = $1', [caseId]),
+      ]);
+
+      const openDate = c.created_at ? new Date(c.created_at).toISOString().slice(0, 10) : 'unknown';
+      const durationDays = c.created_at ? Math.floor((Date.now() - new Date(c.created_at).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+      const injuryDetails = treatments.rows.map(t => `${t.treatment_type || t.provider_name}: ${t.notes || ''}`).join('; ');
+      const attorneyNotes = notes.rows.map(n => `[${n.note_type}] ${n.note_text}`).join('\n');
+
+      const context = `Case: ${c.case_number} — ${c.client_name}
+Incident type: ${c.incident_type || 'Not specified'}
+Open date: ${openDate}
+Duration: ${durationDays} days
+Injury details from treatments: ${injuryDetails || 'None recorded'}
+Discovery gap count: ${gaps.rows[0].count}
+Records request count: ${records.rows[0].count}
+Attorney notes (non-private): ${attorneyNotes || 'None'}
+Case notes: ${c.notes || 'None'}`;
+
+      let draft = {
+        incident_type: c.incident_type || '',
+        injury_types: treatments.rows.map(t => t.treatment_type).filter(Boolean).join(', '),
+        duration_days: durationDays,
+        liability_factors: '',
+        lessons_learned: '',
+        outcome: '',
+      };
+
+      const apiKey = process.env.ANTHROPIC_API_KEY;
+      if (apiKey) {
+        try {
+          const client = new Anthropic({ apiKey });
+          const message = await client.messages.create({
+            model: 'claude-sonnet-4-20250514',
+            max_tokens: 1024,
+            messages: [{ role: 'user', content: `You are a PI law firm knowledge manager. Based on this case data, draft a knowledge base entry for institutional learning.
+
+${context}
+
+Respond with ONLY valid JSON, no markdown:
+{
+  "incident_type": "<incident type>",
+  "injury_types": "<comma-separated injury types observed>",
+  "liability_factors": "<key liability factors that affected this case>",
+  "lessons_learned": "<2-3 sentences of lessons for future similar cases>",
+  "duration_days": <number>,
+  "suggested_outcome": "<your best guess: settled, dismissed, verdict, or other>"
+}` }],
+          });
+          const parsed = JSON.parse(message.content[0].text.trim());
+          draft.incident_type = parsed.incident_type || draft.incident_type;
+          draft.injury_types = parsed.injury_types || draft.injury_types;
+          draft.liability_factors = parsed.liability_factors || '';
+          draft.lessons_learned = parsed.lessons_learned || '';
+          draft.duration_days = parsed.duration_days || draft.duration_days;
+          draft.outcome = parsed.suggested_outcome || '';
+        } catch (aiErr) {
+          console.error('AI draft failed:', aiErr.message);
+        }
+      }
+
+      if (!draft.liability_factors) draft.liability_factors = 'Review case file for key liability factors';
+      if (!draft.lessons_learned) draft.lessons_learned = 'Review attorney notes and case outcome for lessons learned';
+
+      return { draft, context_summary: { duration_days: durationDays, open_date: openDate, gap_count: Number(gaps.rows[0].count), records_count: Number(records.rows[0].count), treatment_count: treatments.rows.length, note_count: notes.rows.length } };
     } catch (err) {
       request.log.error(err);
       return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });

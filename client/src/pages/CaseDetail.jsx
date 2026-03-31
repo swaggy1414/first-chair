@@ -113,6 +113,12 @@ function InfoTab({ caseData, onSave }) {
   const [addingNote, setAddingNote] = useState(false);
   const [noteError, setNoteError] = useState('');
 
+  // Close case modal state
+  const [showCloseModal, setShowCloseModal] = useState(false);
+  const [closeDraft, setCloseDraft] = useState(null);
+  const [closeDraftLoading, setCloseDraftLoading] = useState(false);
+  const [closeSubmitting, setCloseSubmitting] = useState(false);
+
   useEffect(() => {
     setForm({
       client_name: caseData.client_name || '',
@@ -147,6 +153,31 @@ function InfoTab({ caseData, onSave }) {
   useEffect(() => { loadNotes(); }, [loadNotes]);
 
   const handleSave = async () => {
+    // Intercept phase=closed: show AI draft modal instead of saving directly
+    if (form.phase === 'closed' && caseData.phase !== 'closed') {
+      setCloseDraftLoading(true);
+      setShowCloseModal(true);
+      try {
+        const res = await api.post(`/knowledge/draft/${caseData.id}`);
+        setCloseDraft({
+          outcome: res.draft?.outcome || '',
+          settlement_amount: '',
+          incident_type: res.draft?.incident_type || caseData.incident_type || '',
+          injury_types: res.draft?.injury_types || '',
+          liability_factors: res.draft?.liability_factors || '',
+          duration_days: res.draft?.duration_days || '',
+          lessons_learned: res.draft?.lessons_learned || '',
+        });
+      } catch {
+        setCloseDraft({
+          outcome: '', settlement_amount: '', incident_type: caseData.incident_type || '',
+          injury_types: '', liability_factors: '', duration_days: '', lessons_learned: '',
+        });
+      } finally {
+        setCloseDraftLoading(false);
+      }
+      return;
+    }
     setSaving(true);
     setMsg('');
     try {
@@ -159,6 +190,41 @@ function InfoTab({ caseData, onSave }) {
     } finally {
       setSaving(false);
     }
+  };
+
+  const handleConfirmClose = async () => {
+    setCloseSubmitting(true);
+    try {
+      // 1. Save knowledge base entry
+      await api.post('/knowledge', {
+        case_id: caseData.id,
+        incident_type: closeDraft.incident_type,
+        injury_types: closeDraft.injury_types,
+        liability_factors: closeDraft.liability_factors,
+        outcome: closeDraft.outcome,
+        settlement_amount: closeDraft.settlement_amount || null,
+        duration_days: closeDraft.duration_days || null,
+        lessons_learned: closeDraft.lessons_learned,
+      });
+      // 2. Save case with phase=closed (this triggers discovery library copy on server)
+      await api.put(`/cases/${caseData.id}`, form);
+      setShowCloseModal(false);
+      setCloseDraft(null);
+      setMsg('Case closed and knowledge saved');
+      if (onSave) onSave();
+      setTimeout(() => setMsg(''), 3000);
+    } catch (err) {
+      setMsg(err.message);
+    } finally {
+      setCloseSubmitting(false);
+    }
+  };
+
+  const handleCancelClose = () => {
+    setShowCloseModal(false);
+    setCloseDraft(null);
+    // Revert phase back to what it was
+    setForm({ ...form, phase: caseData.phase || 'active' });
   };
 
   const handleAddNote = async (e) => {
@@ -250,6 +316,64 @@ function InfoTab({ caseData, onSave }) {
           )}
           {msg && <span style={{ fontSize: '0.85rem', color: msg === 'Saved' ? 'var(--green)' : 'var(--red)' }}>{msg}</span>}
           {questionnaireMsg && <span style={{ fontSize: '0.85rem', color: questionnaireMsg.includes('success') ? 'var(--green)' : 'var(--red)' }}>{questionnaireMsg}</span>}
+        </div>
+      )}
+
+      {/* Close Case Modal */}
+      {showCloseModal && (
+        <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
+          <div style={{ background: 'var(--white)', borderRadius: 8, padding: 28, maxWidth: 640, width: '90%', maxHeight: '85vh', overflow: 'auto' }}>
+            <h3 style={{ marginTop: 0, fontSize: '1.1rem', fontWeight: 700, color: 'var(--navy)' }}>Close Case — Knowledge Base Entry</h3>
+            <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: 20 }}>Review the AI-drafted knowledge entry before closing this case. Edit any field as needed.</p>
+            {closeDraftLoading ? (
+              <p style={{ color: 'var(--text-light)', textAlign: 'center', padding: 40 }}>AI is drafting knowledge entry...</p>
+            ) : closeDraft ? (
+              <div>
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
+                  <div style={fieldGroup}>
+                    <label style={labelStyle}>Outcome</label>
+                    <select style={inputStyle} value={closeDraft.outcome} onChange={(e) => setCloseDraft({ ...closeDraft, outcome: e.target.value })}>
+                      <option value="">Select outcome...</option>
+                      <option value="settled">Settled</option>
+                      <option value="dismissed">Dismissed</option>
+                      <option value="verdict">Verdict</option>
+                      <option value="other">Other</option>
+                    </select>
+                  </div>
+                  <div style={fieldGroup}>
+                    <label style={labelStyle}>Settlement Amount</label>
+                    <input style={inputStyle} type="number" placeholder="Optional" value={closeDraft.settlement_amount} onChange={(e) => setCloseDraft({ ...closeDraft, settlement_amount: e.target.value })} />
+                  </div>
+                  <div style={fieldGroup}>
+                    <label style={labelStyle}>Incident Type</label>
+                    <input style={inputStyle} value={closeDraft.incident_type} onChange={(e) => setCloseDraft({ ...closeDraft, incident_type: e.target.value })} />
+                  </div>
+                  <div style={fieldGroup}>
+                    <label style={labelStyle}>Duration (days)</label>
+                    <input style={inputStyle} type="number" value={closeDraft.duration_days} onChange={(e) => setCloseDraft({ ...closeDraft, duration_days: e.target.value })} />
+                  </div>
+                </div>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Injury Types</label>
+                  <input style={inputStyle} value={closeDraft.injury_types} onChange={(e) => setCloseDraft({ ...closeDraft, injury_types: e.target.value })} />
+                </div>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Key Liability Factors</label>
+                  <textarea style={{ ...inputStyle, minHeight: 60, resize: 'vertical' }} value={closeDraft.liability_factors} onChange={(e) => setCloseDraft({ ...closeDraft, liability_factors: e.target.value })} />
+                </div>
+                <div style={fieldGroup}>
+                  <label style={labelStyle}>Lessons Learned</label>
+                  <textarea style={{ ...inputStyle, minHeight: 80, resize: 'vertical' }} value={closeDraft.lessons_learned} onChange={(e) => setCloseDraft({ ...closeDraft, lessons_learned: e.target.value })} />
+                </div>
+                <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginTop: 20 }}>
+                  <button type="button" onClick={handleCancelClose} disabled={closeSubmitting} style={btnSecondary}>Cancel</button>
+                  <button type="button" onClick={handleConfirmClose} disabled={closeSubmitting || !closeDraft.outcome} style={{ ...btnPrimary, background: closeDraft.outcome ? 'var(--blue)' : '#ccc' }}>
+                    {closeSubmitting ? 'Closing...' : 'Confirm and Close Case'}
+                  </button>
+                </div>
+              </div>
+            ) : null}
+          </div>
         </div>
       )}
 
