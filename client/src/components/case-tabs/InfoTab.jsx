@@ -69,8 +69,10 @@ export default function InfoTab({ caseData, onSave }) {
   useEffect(() => { loadNotes(); }, [loadNotes]);
 
   const handleSave = async () => {
-    // Intercept phase=closed: show AI draft modal instead of saving directly
-    if (form.phase === 'closed' && caseData.phase !== 'closed') {
+    // Read phase directly from the dropdown to avoid React state timing issues
+    const phaseEl = document.getElementById('phase-select');
+    const currentPhase = phaseEl ? phaseEl.value : form.phase;
+    if (currentPhase === 'closed') {
       setCloseDraftLoading(true);
       setShowCloseModal(true);
       try {
@@ -204,7 +206,7 @@ export default function InfoTab({ caseData, onSave }) {
           </select>
         </div>
         <div style={fieldGroup}><label style={labelStyle}>Phase</label>
-          <select style={inputStyle} value={form.phase || 'active'} onChange={set('phase')} disabled={!canEdit}>
+          <select id="phase-select" style={inputStyle} value={form.phase || 'active'} onChange={set('phase')} disabled={!canEdit}>
             <option value="active">Active</option>
             <option value="written_discovery">Written Discovery</option>
             <option value="deposition">Deposition</option>
