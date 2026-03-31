@@ -10,7 +10,7 @@ function daysSince(dateStr) {
 function ageColor(days) {
   if (days > 60) return 'var(--red)';
   if (days >= 30) return 'var(--yellow)';
-  return 'var(--green)';
+  return '#276749';
 }
 
 function formatDate(d) {
@@ -70,7 +70,7 @@ export default function RecordsTracker() {
                 <tr key={r.id} style={showAgeColor ? { borderLeft: `3px solid ${ageColor(age)}` } : {}}>
                   <td>{r.provider_name}</td>
                   <td>{r.case_number || r.case_id}</td>
-                  <td>{r.record_type}</td>
+                  <td>{r.request_type}</td>
                   <td>{formatDate(r.requested_date || r.created_at)}</td>
                   <td style={{ textTransform: 'capitalize' }}>{r.status || 'requested'}</td>
                   <td>
