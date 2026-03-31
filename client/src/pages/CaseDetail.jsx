@@ -734,7 +734,7 @@ function DiscoveryTab({ caseId }) {
   const [emailPreview, setEmailPreview] = useState(null);
 
   const load = useCallback(() => {
-    api.get(`/discovery/gaps/${caseId}`)
+    api.get(`/discovery/case/${caseId}/gaps`)
       .then((res) => setData({ responses: res.responses || [], gaps: res.gaps || [] }))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));

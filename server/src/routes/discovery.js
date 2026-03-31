@@ -146,8 +146,8 @@ If you cannot analyze the file content, return realistic sample gaps based on co
     }
   });
 
-  // GET /api/discovery/gaps/:caseId
-  fastify.get('/gaps/:caseId', async (request, reply) => {
+  // GET /api/discovery/case/:caseId/gaps
+  fastify.get('/case/:caseId/gaps', async (request, reply) => {
     try {
       const { rows: responses } = await pool.query(`
         SELECT dr.*, u.name AS uploaded_by_name
@@ -172,8 +172,8 @@ If you cannot analyze the file content, return realistic sample gaps based on co
     }
   });
 
-  // GET /api/discovery/gaps/response/:responseId
-  fastify.get('/gaps/response/:responseId', async (request, reply) => {
+  // GET /api/discovery/response/:responseId/gaps
+  fastify.get('/response/:responseId/gaps', async (request, reply) => {
     try {
       const { rows } = await pool.query(`
         SELECT dg.*, u.name AS assigned_to_name
