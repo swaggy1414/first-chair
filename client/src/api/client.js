@@ -13,13 +13,32 @@ async function request(method, path, body) {
     opts.body = JSON.stringify(body);
   }
 
-  const res = await fetch(`${BASE_URL}${path}`, opts);
+  let res = await fetch(`${BASE_URL}${path}`, opts);
 
-  if (res.status === 401) {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    window.location.href = '/login';
-    throw new Error('Unauthorized');
+  if (res.status === 401 && path !== '/auth/login' && path !== '/auth/refresh') {
+    // Try refresh token before giving up
+    const refreshToken = localStorage.getItem('refresh_token');
+    if (refreshToken) {
+      const refreshRes = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ refresh_token: refreshToken }),
+      });
+      if (refreshRes.ok) {
+        const refreshData = await refreshRes.json();
+        localStorage.setItem('token', refreshData.access_token);
+        opts.headers['Authorization'] = `Bearer ${refreshData.access_token}`;
+        res = await fetch(`${BASE_URL}${path}`, opts);
+      }
+    }
+
+    if (res.status === 401) {
+      localStorage.removeItem('token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('user');
+      window.location.href = '/login';
+      throw new Error('Unauthorized');
+    }
   }
 
   if (!res.ok) {
