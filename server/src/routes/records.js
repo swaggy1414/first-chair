@@ -57,16 +57,17 @@ export default async function recordsRoutes(fastify, opts) {
   // PUT /api/records/:id
   fastify.put('/:id', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'records_team')] }, async (request, reply) => {
     try {
-      const { case_id, provider_name, request_type, requested_date, received_date, status, notes } = request.body;
-      const { rows } = await pool.query(`
-        UPDATE records_requests SET case_id = $1, provider_name = $2, request_type = $3, requested_date = $4, received_date = $5, status = $6, notes = $7, updated_at = NOW()
-        WHERE id = $8
-        RETURNING *
-      `, [case_id, provider_name, request_type, requested_date, received_date, status, notes, request.params.id]);
-
-      if (rows.length === 0) {
-        return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Record request not found' });
+      const fields = request.body;
+      const allowed = ['case_id', 'provider_name', 'request_type', 'requested_date', 'received_date', 'status', 'notes'];
+      const sets = [];
+      const params = [];
+      for (const key of allowed) {
+        if (key in fields) { params.push(fields[key]); sets.push(`${key} = $${params.length}`); }
       }
+      if (sets.length === 0) return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'No valid fields' });
+      params.push(request.params.id);
+      const { rows } = await pool.query(`UPDATE records_requests SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+      if (rows.length === 0) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Record request not found' });
       return rows[0];
     } catch (err) {
       request.log.error(err);

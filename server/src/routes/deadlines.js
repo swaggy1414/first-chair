@@ -73,16 +73,17 @@ export default async function deadlinesRoutes(fastify, opts) {
   // PUT /api/deadlines/:id
   fastify.put('/:id', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
-      const { case_id, title, due_date, type, status, assigned_to, notes } = request.body;
-      const { rows } = await pool.query(`
-        UPDATE deadlines SET case_id = $1, title = $2, due_date = $3, type = $4, status = $5, assigned_to = $6, notes = $7, updated_at = NOW()
-        WHERE id = $8
-        RETURNING *
-      `, [case_id, title, due_date, type, status, assigned_to, notes, request.params.id]);
-
-      if (rows.length === 0) {
-        return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Deadline not found' });
+      const fields = request.body;
+      const allowed = ['case_id', 'title', 'due_date', 'type', 'status', 'assigned_to', 'notes'];
+      const sets = [];
+      const params = [];
+      for (const key of allowed) {
+        if (key in fields) { params.push(fields[key]); sets.push(`${key} = $${params.length}`); }
       }
+      if (sets.length === 0) return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'No valid fields' });
+      params.push(request.params.id);
+      const { rows } = await pool.query(`UPDATE deadlines SET ${sets.join(', ')} WHERE id = $${params.length} RETURNING *`, params);
+      if (rows.length === 0) return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Deadline not found' });
       return rows[0];
     } catch (err) {
       request.log.error(err);

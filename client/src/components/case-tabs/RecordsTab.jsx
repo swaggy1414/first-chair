@@ -11,7 +11,7 @@ export default function RecordsTab({ caseId }) {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [form, setForm] = useState({ provider_name: '', record_type: '' });
+  const [form, setForm] = useState({ provider_name: '', request_type: '' });
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(() => {
@@ -28,7 +28,7 @@ export default function RecordsTab({ caseId }) {
     setAdding(true);
     try {
       await api.post('/records', { ...form, case_id: caseId });
-      setForm({ provider_name: '', record_type: '' });
+      setForm({ provider_name: '', request_type: '' });
       load();
     } catch (err) { setError(err.message); }
     finally { setAdding(false); }
@@ -48,7 +48,7 @@ export default function RecordsTab({ caseId }) {
     <div>
       <form onSubmit={handleAdd} style={{ display: 'flex', gap: 12, marginBottom: 20 }}>
         <input style={{ ...inputStyle, width: 200 }} placeholder="Provider name" value={form.provider_name} onChange={(e) => setForm({ ...form, provider_name: e.target.value })} required />
-        <input style={{ ...inputStyle, width: 200 }} placeholder="Record type" value={form.record_type} onChange={(e) => setForm({ ...form, record_type: e.target.value })} required />
+        <input style={{ ...inputStyle, width: 200 }} placeholder="Record type" value={form.request_type} onChange={(e) => setForm({ ...form, request_type: e.target.value })} required />
         <button style={btnPrimary} type="submit" disabled={adding}>{adding ? 'Adding...' : 'Add Request'}</button>
       </form>
       {items.length === 0 ? (
@@ -60,14 +60,16 @@ export default function RecordsTab({ caseId }) {
             {items.map((r) => (
               <tr key={r.id}>
                 <td>{r.provider_name}</td>
-                <td>{r.record_type}</td>
+                <td>{r.request_type}</td>
                 <td>{formatDate(r.requested_date || r.created_at)}</td>
                 <td style={{ textTransform: 'capitalize' }}>{r.status || 'requested'}</td>
                 <td>
                   <select style={{ ...inputStyle, width: 'auto' }} value={r.status || 'requested'} onChange={(e) => handleStatus(r.id, e.target.value)}>
-                    <option value="requested">Requested</option>
+                    <option value="pending">Pending</option>
+                    <option value="sent">Sent</option>
                     <option value="received">Received</option>
-                    <option value="reviewed">Reviewed</option>
+                    <option value="partial">Partial</option>
+                    <option value="follow_up">Follow Up</option>
                   </select>
                 </td>
               </tr>
