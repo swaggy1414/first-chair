@@ -15,7 +15,7 @@ export default function DeadlinesTab({ caseId }) {
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(() => {
-    api.get(`/cases/${caseId}/deadlines`)
+    api.get(`/deadlines?case_id=${caseId}`)
       .then((res) => setItems(Array.isArray(res) ? res : res.deadlines || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -27,7 +27,7 @@ export default function DeadlinesTab({ caseId }) {
     e.preventDefault();
     setAdding(true);
     try {
-      await api.post(`/cases/${caseId}/deadlines`, form);
+      await api.post('/deadlines', { ...form, case_id: caseId });
       setForm({ title: '', due_date: '', description: '' });
       load();
     } catch (err) {
@@ -39,14 +39,14 @@ export default function DeadlinesTab({ caseId }) {
 
   const handleComplete = async (id) => {
     try {
-      await api.put(`/cases/${caseId}/deadlines/${id}`, { status: 'completed' });
+      await api.put(`/deadlines/${id}`, { status: 'completed' });
       load();
     } catch (err) { setError(err.message); }
   };
 
   const handleDelete = async (id) => {
     try {
-      await api.del(`/cases/${caseId}/deadlines/${id}`);
+      await api.del(`/deadlines/${id}`);
       load();
     } catch (err) { setError(err.message); }
   };

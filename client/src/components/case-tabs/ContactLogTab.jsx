@@ -15,7 +15,7 @@ export default function ContactLogTab({ caseId }) {
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(() => {
-    api.get(`/cases/${caseId}/contacts`)
+    api.get(`/contacts?case_id=${caseId}`)
       .then((res) => setItems(Array.isArray(res) ? res : res.contacts || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -27,7 +27,7 @@ export default function ContactLogTab({ caseId }) {
     e.preventDefault();
     setAdding(true);
     try {
-      await api.post(`/cases/${caseId}/contacts`, form);
+      await api.post('/contacts', { ...form, case_id: caseId });
       setForm({ contact_type: 'phone', direction: 'outgoing', summary: '' });
       load();
     } catch (err) { setError(err.message); }

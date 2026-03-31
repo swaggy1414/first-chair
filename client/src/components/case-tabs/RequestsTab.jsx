@@ -15,7 +15,7 @@ export default function RequestsTab({ caseId }) {
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(() => {
-    api.get(`/cases/${caseId}/requests`)
+    api.get(`/attorney-requests?case_id=${caseId}`)
       .then((res) => setItems(Array.isArray(res) ? res : res.requests || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -27,7 +27,7 @@ export default function RequestsTab({ caseId }) {
     e.preventDefault();
     setAdding(true);
     try {
-      await api.post(`/cases/${caseId}/requests`, form);
+      await api.post('/attorney-requests', { ...form, case_id: caseId });
       setForm({ title: '', description: '', priority: 'standard' });
       load();
     } catch (err) { setError(err.message); }
@@ -36,7 +36,7 @@ export default function RequestsTab({ caseId }) {
 
   const handleUpdate = async (id, updates) => {
     try {
-      await api.put(`/cases/${caseId}/requests/${id}`, updates);
+      await api.put(`/attorney-requests/${id}`, updates);
       load();
     } catch (err) { setError(err.message); }
   };

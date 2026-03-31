@@ -15,7 +15,7 @@ export default function RecordsTab({ caseId }) {
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(() => {
-    api.get(`/cases/${caseId}/records`)
+    api.get(`/records?case_id=${caseId}`)
       .then((res) => setItems(Array.isArray(res) ? res : res.records || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -27,7 +27,7 @@ export default function RecordsTab({ caseId }) {
     e.preventDefault();
     setAdding(true);
     try {
-      await api.post(`/cases/${caseId}/records`, form);
+      await api.post('/records', { ...form, case_id: caseId });
       setForm({ provider_name: '', record_type: '' });
       load();
     } catch (err) { setError(err.message); }
@@ -36,7 +36,7 @@ export default function RecordsTab({ caseId }) {
 
   const handleStatus = async (id, status) => {
     try {
-      await api.put(`/cases/${caseId}/records/${id}`, { status });
+      await api.put(`/records/${id}`, { status });
       load();
     } catch (err) { setError(err.message); }
   };
