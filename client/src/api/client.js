@@ -2,13 +2,14 @@ const BASE_URL = 'http://localhost:3001/api';
 
 async function request(method, path, body) {
   const token = localStorage.getItem('token');
-  const headers = { 'Content-Type': 'application/json' };
+  const headers = {};
   if (token) {
     headers['Authorization'] = `Bearer ${token}`;
   }
 
   const opts = { method, headers };
   if (body) {
+    headers['Content-Type'] = 'application/json';
     opts.body = JSON.stringify(body);
   }
 
