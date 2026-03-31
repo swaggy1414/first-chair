@@ -783,7 +783,7 @@ function TreatmentTab({ caseId }) {
   const [adding, setAdding] = useState(false);
 
   const load = useCallback(() => {
-    api.get(`/cases/${caseId}/treatments`)
+    api.get(`/treatments?case_id=${caseId}`)
       .then((res) => setItems(Array.isArray(res) ? res : res.treatments || []))
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -795,7 +795,7 @@ function TreatmentTab({ caseId }) {
     e.preventDefault();
     setAdding(true);
     try {
-      await api.post(`/cases/${caseId}/treatments`, form);
+      await api.post('/treatments', { ...form, case_id: caseId });
       setForm({ provider_name: '', treatment_type: '', treatment_date: '' });
       load();
     } catch (err) { setError(err.message); }
@@ -804,7 +804,7 @@ function TreatmentTab({ caseId }) {
 
   const handleStatus = async (id, status) => {
     try {
-      await api.put(`/cases/${caseId}/treatments/${id}`, { status });
+      await api.put(`/treatments/${id}`, { status });
       load();
     } catch (err) { setError(err.message); }
   };
