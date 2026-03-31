@@ -44,6 +44,10 @@ export default async function casesRoutes(fastify, opts) {
   // GET /api/cases/:id
   fastify.get('/:id', async (request, reply) => {
     try {
+      const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+      if (!uuidRegex.test(request.params.id)) {
+        return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'Invalid case ID format' });
+      }
       const { rows } = await pool.query(`
         SELECT c.*,
           p.name AS paralegal_name,

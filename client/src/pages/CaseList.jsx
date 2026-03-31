@@ -130,7 +130,7 @@ export default function CaseList() {
                     width: 10,
                     height: 10,
                     borderRadius: '50%',
-                    background: flagColors[c.flag] || 'var(--green)',
+                    background: flagColors[c.flag_color] || 'var(--green)',
                   }} />
                 </td>
                 <td style={{ fontWeight: 600 }}>{c.case_number}</td>

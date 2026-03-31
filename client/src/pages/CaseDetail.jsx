@@ -80,9 +80,18 @@ export default function CaseDetail() {
   const [activeTab, setActiveTab] = useState(0);
 
   const loadCase = useCallback(() => {
+    if (!id) { setError('No case ID'); setLoading(false); return; }
     api.get(`/cases/${id}`)
-      .then((res) => setCaseData(res.case || res))
-      .catch((err) => setError(err.message))
+      .then((res) => {
+        if (res && res.id) {
+          setCaseData(res);
+        } else if (res && res.case) {
+          setCaseData(res.case);
+        } else {
+          setError('Case not found');
+        }
+      })
+      .catch((err) => setError(err.message || 'Failed to load case'))
       .finally(() => setLoading(false));
   }, [id]);
 
