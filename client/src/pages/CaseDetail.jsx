@@ -1,6 +1,23 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useParams } from 'react-router-dom';
 import { api } from '../api/client';
+
+class TabErrorBoundary extends React.Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div style={{ padding: 24, color: 'var(--red)', background: '#FED7D7', borderRadius: 8 }}>
+          <p style={{ fontWeight: 600 }}>This tab encountered an error.</p>
+          <p style={{ fontSize: '0.85rem', marginTop: 8 }}>{this.state.error?.message || 'Unknown error'}</p>
+          <button style={{ marginTop: 12, padding: '6px 14px', background: 'var(--blue)', color: '#fff', border: 'none', borderRadius: 6, cursor: 'pointer' }} onClick={() => this.setState({ hasError: false, error: null })}>Retry</button>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 import InfoTab from '../components/case-tabs/InfoTab';
 import DeadlinesTab from '../components/case-tabs/DeadlinesTab';
 import RecordsTab from '../components/case-tabs/RecordsTab';
@@ -95,7 +112,7 @@ export default function CaseDetail() {
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 6 }}>
           <span style={{
             width: 12, height: 12, borderRadius: '50%',
-            background: flagColors[caseData.flag] || 'var(--green)',
+            background: flagColors[caseData.flag_color] || 'var(--green)',
             display: 'inline-block',
           }} />
           <h1 style={{ fontSize: '1.4rem', fontWeight: 700, color: 'var(--navy)' }}>
@@ -117,7 +134,9 @@ export default function CaseDetail() {
         ))}
       </div>
 
-      {renderTab()}
+      <TabErrorBoundary key={activeTab}>
+        {renderTab()}
+      </TabErrorBoundary>
     </div>
   );
 }
