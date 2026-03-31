@@ -781,6 +781,14 @@ function DiscoveryTab({ caseId }) {
     finally { setGenerating(null); }
   };
 
+  const handleDeleteResponse = async (responseId, fileName) => {
+    if (!window.confirm(`Delete "${fileName}" and all associated gaps? This cannot be undone.`)) return;
+    try {
+      await api.del(`/discovery/response/${responseId}`);
+      load();
+    } catch (err2) { setError(err2.message); }
+  };
+
   const handleGapUpdate = async (gapId, updates) => {
     try {
       const token = localStorage.getItem('token');
@@ -842,6 +850,13 @@ function DiscoveryTab({ caseId }) {
                   <span style={{ padding: '4px 10px', borderRadius: 12, fontSize: '0.75rem', fontWeight: 600, color: '#fff', background: resp.status === 'complete' ? 'var(--green)' : resp.status === 'error' ? 'var(--red)' : 'var(--yellow)' }}>
                     {resp.status}
                   </span>
+                  <button
+                    type="button"
+                    onClick={() => handleDeleteResponse(resp.id, resp.file_name)}
+                    style={{ background: 'none', border: 'none', color: 'var(--red)', fontSize: '0.78rem', cursor: 'pointer', padding: '6px 8px' }}
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
 

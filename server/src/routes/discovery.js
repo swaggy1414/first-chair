@@ -256,6 +256,20 @@ Keep it concise, professional, and easy for a non-lawyer to understand.`;
     }
   });
 
+  // DELETE /api/discovery/response/:responseId
+  fastify.delete('/response/:responseId', { preHandler: [authorize('admin', 'supervisor')] }, async (request, reply) => {
+    try {
+      const { rowCount } = await pool.query('DELETE FROM discovery_responses WHERE id = $1', [request.params.responseId]);
+      if (rowCount === 0) {
+        return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Discovery response not found' });
+      }
+      return { message: 'Discovery response and associated gaps deleted' };
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
+    }
+  });
+
   // PATCH /api/discovery/gaps/:gapId
   fastify.patch('/gaps/:gapId', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
