@@ -14,8 +14,7 @@ describe('First Chair App', () => {
   });
 
   test('API base URL is configured correctly', () => {
-    const baseUrl = 'http://localhost:3001/api';
-    expect(baseUrl).toContain('3001');
+    const baseUrl = process.env.VITE_API_URL || 'http://localhost:3001/api';
     expect(baseUrl).toContain('/api');
   });
 

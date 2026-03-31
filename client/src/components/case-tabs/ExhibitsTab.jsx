@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '../../api/client';
+import { api, API_URL } from '../../api/client';
 import { btnPrimary, btnSecondary } from './styles';
 
 const EXHIBIT_CATEGORIES = ['Medical Records', 'Police Report', 'Photos', 'Bills and Invoices', 'Correspondence', 'Expert Reports', 'Deposition', 'Other'];
@@ -41,7 +41,7 @@ export default function ExhibitsTab({ caseId }) {
       const formData = new FormData();
       formData.append('file', file);
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3001/api/exhibits/upload/${caseId}`, {
+      const res = await fetch(`${API_URL}/exhibits/upload/${caseId}`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,

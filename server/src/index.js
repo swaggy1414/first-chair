@@ -23,11 +23,11 @@ import attorneyNotesRoutes from './routes/attorney-notes.js';
 const fastify = Fastify({ logger: true });
 
 await fastify.register(cors, {
-  origin: 'http://localhost:5174',
+  origin: process.env.FRONTEND_URL || 'http://localhost:5174',
 });
 
 await fastify.register(jwt, {
-  secret: 'first-chair-jwt-secret-2025',
+  secret: process.env.JWT_SECRET || 'first-chair-jwt-secret-2025',
   sign: { expiresIn: '8h' },
 });
 
@@ -51,7 +51,7 @@ await fastify.register(knowledgeRoutes, { prefix: '/api/knowledge' });
 await fastify.register(attorneyNotesRoutes, { prefix: '/api/attorney-notes' });
 
 try {
-  await fastify.listen({ port: 3001, host: '0.0.0.0' });
+  await fastify.listen({ port: parseInt(process.env.PORT || '3001'), host: '0.0.0.0' });
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);

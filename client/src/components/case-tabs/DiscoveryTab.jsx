@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { api } from '../../api/client';
+import { api, API_URL } from '../../api/client';
 import { btnPrimary, btnSecondary } from './styles';
 
 const GAP_TYPE_LABELS = { missing_document: 'Missing Document', incomplete_answer: 'Incomplete Answer', no_answer: 'No Answer', evasive_answer: 'Evasive Answer', objection_only: 'Objection Only' };
@@ -35,7 +35,7 @@ export default function DiscoveryTab({ caseId }) {
       const formData = new FormData();
       formData.append('file', file);
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3001/api/discovery/upload/${caseId}`, {
+      const res = await fetch(`${API_URL}/discovery/upload/${caseId}`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
       });
       if (!res.ok) { const err2 = await res.json().catch(() => ({})); throw new Error(err2.message || 'Upload failed'); }
@@ -74,7 +74,7 @@ export default function DiscoveryTab({ caseId }) {
   const handleGapUpdate = async (gapId, updates) => {
     try {
       const token = localStorage.getItem('token');
-      const res = await fetch(`http://localhost:3001/api/discovery/gaps/${gapId}`, {
+      const res = await fetch(`${API_URL}/discovery/gaps/${gapId}`, {
         method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify(updates),
       });
       if (!res.ok) { const err = await res.json().catch(() => ({})); throw new Error(err.message || 'Update failed'); }

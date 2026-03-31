@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { api } from '../api/client';
+import { api, API_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 
 const sectionStyle = {
@@ -258,7 +258,7 @@ function ObjectionsLibrary({ user, isAdmin }) {
       const token = localStorage.getItem('token');
       const formData = new FormData();
       formData.append('file', file);
-      const res = await fetch('http://localhost:3001/api/objections/import', {
+      const res = await fetch(`${API_URL}/objections/import`, {
         method: 'POST',
         headers: { Authorization: `Bearer ${token}` },
         body: formData,
