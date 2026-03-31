@@ -7,11 +7,24 @@ const SALT_ROUNDS = 10;
 export default async function usersRoutes(fastify, opts) {
   fastify.addHook('preHandler', authenticate);
 
+  // GET /api/users/attorneys — any authenticated user can see attorney list
+  fastify.get('/attorneys', async (request, reply) => {
+    try {
+      const { rows } = await pool.query(
+        "SELECT id, name, email FROM users WHERE role = 'attorney' ORDER BY name"
+      );
+      return rows;
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
+    }
+  });
+
   // GET /api/users
   fastify.get('/', { preHandler: [authorize('admin', 'supervisor')] }, async (request, reply) => {
     try {
       const { rows } = await pool.query(
-        'SELECT id, name, email, role, force_password_change, created_at, updated_at FROM users ORDER BY name'
+        'SELECT id, name, email, role, force_password_change, created_at FROM users ORDER BY name'
       );
       return rows;
     } catch (err) {
@@ -28,7 +41,7 @@ export default async function usersRoutes(fastify, opts) {
       const { rows } = await pool.query(`
         INSERT INTO users (name, email, password_hash, role, force_password_change)
         VALUES ($1, $2, $3, $4, $5)
-        RETURNING id, name, email, role, force_password_change, created_at, updated_at
+        RETURNING id, name, email, role, force_password_change, created_at
       `, [name, email, password_hash, role, force_password_change !== false]);
       return reply.status(201).send(rows[0]);
     } catch (err) {
@@ -42,9 +55,9 @@ export default async function usersRoutes(fastify, opts) {
     try {
       const { name, email, role, force_password_change } = request.body;
       const { rows } = await pool.query(`
-        UPDATE users SET name = $1, email = $2, role = $3, force_password_change = $4, updated_at = NOW()
+        UPDATE users SET name = $1, email = $2, role = $3, force_password_change = $4
         WHERE id = $5
-        RETURNING id, name, email, role, force_password_change, created_at, updated_at
+        RETURNING id, name, email, role, force_password_change, created_at
       `, [name, email, role, force_password_change, request.params.id]);
 
       if (rows.length === 0) {

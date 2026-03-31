@@ -65,8 +65,8 @@ export default function Settings() {
       setLoadingUsers(false);
     }
 
-    api.get('/attorneys')
-      .then((res) => setAttorneys(Array.isArray(res) ? res : res.attorneys || []))
+    api.get('/users/attorneys')
+      .then((res) => setAttorneys(Array.isArray(res) ? res : []))
       .catch(() => setAttorneys([]))
       .finally(() => setLoadingAttorneys(false));
   }, [isAdmin]);
