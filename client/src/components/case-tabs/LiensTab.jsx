@@ -85,14 +85,14 @@ export default function LiensTab({ caseId, caseData }) {
 
   // ── Loaders ──
   const loadAnalyses = useCallback(() => {
-    api.get(`/liens/analyses/${caseId}`)
+    api.get(`/liens/analysis/${caseId}`)
       .then((res) => setAnalyses(Array.isArray(res) ? res : res.analyses || []))
       .catch((err) => setError(err.message))
       .finally(() => setAnalysesLoading(false));
   }, [caseId]);
 
   const loadLiens = useCallback(() => {
-    api.get(`/liens/case/${caseId}`)
+    api.get(`/liens/liens/${caseId}`)
       .then((res) => setLiens(Array.isArray(res) ? res : res.liens || []))
       .catch((err) => setError(err.message))
       .finally(() => setLiensLoading(false));
@@ -105,7 +105,7 @@ export default function LiensTab({ caseId, caseData }) {
   }, [caseId]);
 
   const loadSubrogation = useCallback(() => {
-    api.get('/liens/subrogation')
+    api.get('/liens/subrogation-directory')
       .then((res) => setSubrogation(Array.isArray(res) ? res : res.entries || []))
       .catch(() => setSubrogation([]))
       .finally(() => setSubLoading(false));
@@ -149,7 +149,9 @@ export default function LiensTab({ caseId, caseData }) {
 
   const handleToggleRelated = async (lineItemId, currentValue) => {
     try {
-      await api.put(`/liens/line-item/${lineItemId}`, { is_related: !currentValue });
+      const token = localStorage.getItem('token');
+      await fetch(`${API_URL}/liens/treatment-items/${lineItemId}`, { method: 'PATCH', headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }, body: JSON.stringify({ is_related: !currentValue, paralegal_override: true }) });
+
       loadAnalyses();
     } catch (err) { setError(err.message); }
   };
@@ -170,7 +172,7 @@ export default function LiensTab({ caseId, caseData }) {
     setAddingLien(true);
     setError('');
     try {
-      await api.post('/liens', { case_id: caseId, ...lienForm, lien_amount: parseFloat(lienForm.lien_amount) || 0 });
+      await api.post(`/liens/liens/${caseId}`, { ...lienForm, lien_amount: parseFloat(lienForm.lien_amount) || 0 });
       setLienForm({ health_plan_name: '', plan_type: 'commercial', lien_amount: '' });
       loadLiens();
     } catch (err) { setError(err.message); }
@@ -179,7 +181,7 @@ export default function LiensTab({ caseId, caseData }) {
 
   const handleUpdateLien = async (lienId) => {
     try {
-      await api.put(`/liens/${lienId}`, editLien);
+      await api.put(`/liens/liens/${lienId}`, editLien);
       loadLiens();
     } catch (err) { setError(err.message); }
   };
@@ -210,7 +212,7 @@ export default function LiensTab({ caseId, caseData }) {
     setAddingSub(true);
     setError('');
     try {
-      await api.post('/liens/subrogation', subForm);
+      await api.post('/liens/subrogation-directory', subForm);
       setSubForm({
         health_plan_name: '', plan_type: 'commercial', subrogation_company: '',
         contact_name: '', contact_phone: '', contact_email: '', mailing_address: '',
