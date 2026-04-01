@@ -161,9 +161,9 @@ function CreateSubpoenaFlow({ onClose, onCreated }) {
 
   // Step 2 fields
   const [details, setDetails] = useState({
-    subpoena_type: 'Records',
+    subpoena_type: 'records',
     case_id: '',
-    recipient_type: 'Business',
+    recipient_type: 'business',
     issued_date: new Date().toISOString().split('T')[0],
     response_due_date: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     notes: '',
@@ -374,9 +374,9 @@ function CreateSubpoenaFlow({ onClose, onCreated }) {
             <div style={fieldGroup}>
               <label style={labelStyle}>Subpoena Type</label>
               <select value={details.subpoena_type} onChange={(e) => setDetails({ ...details, subpoena_type: e.target.value })} style={{ ...inputStyle, width: '100%' }}>
-                <option value="Records">Records</option>
-                <option value="Deposition">Deposition</option>
-                <option value="Records & Deposition">Records &amp; Deposition</option>
+                <option value="records">Records</option>
+                <option value="deposition">Deposition</option>
+                <option value="records_and_deposition">Records &amp; Deposition</option>
               </select>
             </div>
             <div style={fieldGroup}>
@@ -391,11 +391,11 @@ function CreateSubpoenaFlow({ onClose, onCreated }) {
             <div style={fieldGroup}>
               <label style={labelStyle}>Recipient Type</label>
               <select value={details.recipient_type} onChange={(e) => setDetails({ ...details, recipient_type: e.target.value })} style={{ ...inputStyle, width: '100%' }}>
-                <option value="Individual">Individual</option>
-                <option value="Business">Business</option>
-                <option value="Government">Government</option>
-                <option value="Hospital">Hospital</option>
-                <option value="Insurance">Insurance</option>
+                <option value="individual">Individual</option>
+                <option value="business">Business</option>
+                <option value="government">Government</option>
+                <option value="hospital">Hospital</option>
+                <option value="insurance">Insurance</option>
               </select>
             </div>
             <div style={fieldGroup}>
