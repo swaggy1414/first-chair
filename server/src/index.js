@@ -1,7 +1,32 @@
+import { readFileSync } from 'fs';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
 import Fastify from 'fastify';
 import cors from '@fastify/cors';
 import jwt from '@fastify/jwt';
 import multipart from '@fastify/multipart';
+import pool from './db.js';
+
+// Auto-seed on first boot
+const __dirname = dirname(fileURLToPath(import.meta.url));
+try {
+  const { rows } = await pool.query('SELECT count(*) as count FROM users');
+  if (Number(rows[0].count) === 0) {
+    console.log('Empty database detected — running seed...');
+    await import('./seed.js');
+    console.log('Seed complete.');
+  } else {
+    console.log(`Database has ${rows[0].count} users — skipping seed.`);
+  }
+} catch {
+  console.log('Users table not found — running schema and seed...');
+  const schema = readFileSync(join(__dirname, '..', 'sql', 'schema.sql'), 'utf-8');
+  const cleanSchema = schema.split('\n').filter(l => !l.startsWith('\\c') && !l.startsWith('DROP DATABASE') && !l.startsWith('CREATE DATABASE')).join('\n');
+  await pool.query(cleanSchema);
+  console.log('Schema created.');
+  await import('./seed.js');
+  console.log('Seed complete.');
+}
 
 import authRoutes from './routes/auth.js';
 import casesRoutes from './routes/cases.js';
