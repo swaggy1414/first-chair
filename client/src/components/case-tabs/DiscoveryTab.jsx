@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { api, API_URL } from '../../api/client';
 import { btnPrimary, btnSecondary } from './styles';
 
@@ -6,7 +7,18 @@ const GAP_TYPE_LABELS = { missing_document: 'Missing Document', incomplete_answe
 const PRIORITY_COLORS = { high: 'var(--red)', medium: 'var(--yellow)', low: 'var(--green)' };
 const GAP_STATUSES = ['open', 'client_notified', 'response_received', 'resolved', 'waived'];
 
+const STATUS_BADGE_COLORS = {
+  responded: { bg: 'var(--green)', color: '#fff' },
+  complied: { bg: 'var(--green)', color: '#fff' },
+  served: { bg: 'var(--blue)', color: '#fff' },
+  issued: { bg: 'var(--blue)', color: '#fff' },
+  draft: { bg: 'var(--light-gray)', color: 'var(--text)' },
+  deficient: { bg: 'var(--yellow)', color: '#000' },
+  quashed: { bg: 'var(--red)', color: '#fff' },
+};
+
 export default function DiscoveryTab({ caseId }) {
+  const navigate = useNavigate();
   const [data, setData] = useState({ responses: [], gaps: [] });
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -14,6 +26,8 @@ export default function DiscoveryTab({ caseId }) {
   const [analyzing, setAnalyzing] = useState(null);
   const [generating, setGenerating] = useState(null);
   const [emailPreview, setEmailPreview] = useState(null);
+  const [subpoenas, setSubpoenas] = useState([]);
+  const [subpoenasLoading, setSubpoenasLoading] = useState(true);
 
   const load = useCallback(() => {
     api.get(`/discovery/case/${caseId}/gaps`)
@@ -23,6 +37,16 @@ export default function DiscoveryTab({ caseId }) {
   }, [caseId]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    api.get(`/subpoenas/case/${caseId}`)
+      .then((res) => {
+        const list = res.subpoenas || res || [];
+        setSubpoenas(Array.isArray(list) ? list : []);
+      })
+      .catch(() => setSubpoenas([]))
+      .finally(() => setSubpoenasLoading(false));
+  }, [caseId]);
 
   const handleUpload = async (e) => {
     e.preventDefault();
@@ -180,6 +204,51 @@ export default function DiscoveryTab({ caseId }) {
           );
         })
       )}
+
+      {/* Subpoenas Section */}
+      <div style={{ marginTop: 32 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 }}>
+          <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>Subpoenas ({subpoenas.length})</h3>
+          <button type="button" onClick={() => navigate('/subpoena-manager')} style={{ ...btnPrimary, fontSize: '0.78rem', padding: '6px 14px' }}>
+            Issue Subpoena
+          </button>
+        </div>
+        {subpoenasLoading ? (
+          <p style={{ color: 'var(--text-light)', fontSize: '0.85rem' }}>Loading subpoenas...</p>
+        ) : subpoenas.length === 0 ? (
+          <p style={{ color: 'var(--text-light)', textAlign: 'center', padding: 20 }}>No subpoenas for this case</p>
+        ) : (
+          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <thead>
+              <tr style={{ borderBottom: '2px solid var(--border)' }}>
+                <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: '0.75rem', color: 'var(--text-light)' }}>Recipient</th>
+                <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: '0.75rem', color: 'var(--text-light)' }}>Type</th>
+                <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: '0.75rem', color: 'var(--text-light)' }}>State</th>
+                <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: '0.75rem', color: 'var(--text-light)' }}>Status</th>
+                <th style={{ textAlign: 'left', padding: '6px 8px', fontSize: '0.75rem', color: 'var(--text-light)' }}>Response Due</th>
+              </tr>
+            </thead>
+            <tbody>
+              {subpoenas.map((sub) => {
+                const badge = STATUS_BADGE_COLORS[sub.status] || { bg: 'var(--light-gray)', color: 'var(--text)' };
+                return (
+                  <tr key={sub.id} style={{ borderBottom: '1px solid var(--border)' }}>
+                    <td style={{ padding: '8px', fontSize: '0.8rem' }}>{sub.recipient_name || sub.entity_name || '-'}</td>
+                    <td style={{ padding: '8px', fontSize: '0.8rem' }}>{sub.subpoena_type || '-'}</td>
+                    <td style={{ padding: '8px', fontSize: '0.8rem' }}>{sub.state || '-'}</td>
+                    <td style={{ padding: '8px' }}>
+                      <span style={{ padding: '2px 8px', borderRadius: 12, fontSize: '0.72rem', fontWeight: 600, color: badge.color, background: badge.bg }}>
+                        {sub.status}
+                      </span>
+                    </td>
+                    <td style={{ padding: '8px', fontSize: '0.8rem' }}>{sub.response_due_date ? new Date(sub.response_due_date).toLocaleDateString() : '-'}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
 
       {emailPreview && (
         <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>

@@ -46,6 +46,7 @@ import knowledgeRoutes from './routes/knowledge.js';
 import attorneyNotesRoutes from './routes/attorney-notes.js';
 import filevineRoutes from './routes/filevine.js';
 import liensRoutes from './routes/liens.js';
+import subpoenaRoutes from './routes/subpoenas.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -78,6 +79,7 @@ await fastify.register(knowledgeRoutes, { prefix: '/api/knowledge' });
 await fastify.register(attorneyNotesRoutes, { prefix: '/api/attorney-notes' });
 await fastify.register(filevineRoutes, { prefix: '/api/filevine' });
 await fastify.register(liensRoutes, { prefix: '/api/liens' });
+await fastify.register(subpoenaRoutes, { prefix: '/api/subpoenas' });
 
 try {
   await fastify.listen({ port: parseInt(process.env.PORT || '3001'), host: '0.0.0.0' });

@@ -100,7 +100,7 @@ function BriefCard({ item, onClick }) {
         {item.case_number || ''}
       </div>
       <div style={{ fontSize: '0.85rem', color: 'var(--text)', marginTop: 2 }}>
-        {item.title || item.gap_description || ''}
+        {item.title || item.recipient_name || item.gap_description || ''}
       </div>
       <div style={{ fontSize: '0.78rem', color: 'var(--text-light)', marginTop: 4 }}>
         Due: {formatDate(item.due_date)}
@@ -457,9 +457,9 @@ export default function MorningBrief() {
     ])
       .then(([briefRes, roleRes]) => {
         setData({
-          today: briefRes.today_deadlines || [],
+          today: [...(briefRes.today_deadlines || []), ...(briefRes.subpoenas_due_today || [])],
           thisWeek: briefRes.week_deadlines || [],
-          watch: [...(briefRes.overdue_items || []), ...(briefRes.flagged_cases || [])],
+          watch: [...(briefRes.overdue_items || []), ...(briefRes.flagged_cases || []), ...(briefRes.subpoenas_overdue || [])],
         });
         setRoleData(roleRes);
       })

@@ -394,3 +394,78 @@ CREATE TABLE IF NOT EXISTS subrogation_directory (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_subrogation_directory_plan ON subrogation_directory(health_plan_name);
+
+-- Subpoenas
+CREATE TABLE IF NOT EXISTS subpoenas (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  subpoena_type VARCHAR(100),
+  recipient_name VARCHAR(255),
+  recipient_type VARCHAR(100),
+  registered_agent_name VARCHAR(255),
+  registered_agent_address TEXT,
+  service_address TEXT,
+  service_method VARCHAR(100),
+  state_of_service VARCHAR(10),
+  is_foreign_subpoena BOOLEAN DEFAULT false,
+  issued_date DATE,
+  served_date DATE,
+  response_due_date DATE,
+  status VARCHAR(50) DEFAULT 'draft' CHECK (status IN ('draft','issued','served','responded','deficient','complied','quashed')),
+  discovery_gap_id UUID REFERENCES discovery_gaps(id) ON DELETE SET NULL,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_subpoenas_case ON subpoenas(case_id);
+CREATE INDEX IF NOT EXISTS idx_subpoenas_status ON subpoenas(status);
+CREATE INDEX IF NOT EXISTS idx_subpoenas_due_date ON subpoenas(response_due_date);
+
+-- Subpoena Compliance
+CREATE TABLE IF NOT EXISTS subpoena_compliance (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subpoena_id UUID NOT NULL REFERENCES subpoenas(id) ON DELETE CASCADE,
+  issuing_state VARCHAR(10),
+  service_state VARCHAR(10),
+  is_foreign BOOLEAN DEFAULT false,
+  service_requirements TEXT,
+  court_filing_required BOOLEAN DEFAULT false,
+  court_name VARCHAR(255),
+  commission_required BOOLEAN DEFAULT false,
+  notice_period_days INTEGER,
+  special_instructions TEXT,
+  common_mistakes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_subpoena_compliance_subpoena ON subpoena_compliance(subpoena_id);
+
+-- Registered Agent Cache
+CREATE TABLE IF NOT EXISTS registered_agent_cache (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  entity_name VARCHAR(255) NOT NULL,
+  state VARCHAR(10) NOT NULL,
+  registered_agent_name VARCHAR(255),
+  registered_agent_address TEXT,
+  service_address TEXT,
+  service_department VARCHAR(255),
+  notes TEXT,
+  verify_recommended BOOLEAN DEFAULT true,
+  source VARCHAR(50) DEFAULT 'ai_lookup' CHECK (source IN ('nc_sos','ai_lookup','manual')),
+  lookup_date TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_registered_agent_cache_entity ON registered_agent_cache(entity_name, state);
+
+-- Subpoena Responses
+CREATE TABLE IF NOT EXISTS subpoena_responses (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  subpoena_id UUID NOT NULL REFERENCES subpoenas(id) ON DELETE CASCADE,
+  received_date DATE,
+  response_type VARCHAR(100),
+  documents_received BOOLEAN DEFAULT false,
+  objections_raised BOOLEAN DEFAULT false,
+  deficiency_description TEXT,
+  supplementation_needed BOOLEAN DEFAULT false,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_subpoena_responses_subpoena ON subpoena_responses(subpoena_id);

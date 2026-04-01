@@ -10,6 +10,7 @@ import CapacityDashboard from './pages/CapacityDashboard';
 import Settings from './pages/Settings';
 import DiscoveryLibrary from './pages/DiscoveryLibrary';
 import KnowledgeBase from './pages/KnowledgeBase';
+import SubpoenaManager from './pages/SubpoenaManager';
 
 export default function App() {
   return (
@@ -24,6 +25,7 @@ export default function App() {
         <Route path="/capacity" element={<CapacityDashboard />} />
         <Route path="/discovery-library" element={<DiscoveryLibrary />} />
         <Route path="/knowledge-base" element={<KnowledgeBase />} />
+        <Route path="/subpoena-manager" element={<SubpoenaManager />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

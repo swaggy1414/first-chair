@@ -7,7 +7,7 @@ export default async function dashboardRoutes(fastify, opts) {
   // GET /api/dashboard/morning-brief
   fastify.get('/morning-brief', async (request, reply) => {
     try {
-      const [todayDeadlines, weekDeadlines, overdueItems, flaggedCases, recentContacts, questionnaireFollowups, questionnaireOverdue] = await Promise.all([
+      const [todayDeadlines, weekDeadlines, overdueItems, flaggedCases, recentContacts, questionnaireFollowups, questionnaireOverdue, subpoenasDueToday, subpoenasOverdue] = await Promise.all([
         // Today's deadlines
         pool.query(`
           SELECT d.*, c.case_number, c.client_name, u.name AS assigned_to_name
@@ -73,6 +73,24 @@ export default async function dashboardRoutes(fastify, opts) {
             AND dq.status != 'responded'
             AND dq.sent_at + INTERVAL '10 days' < NOW()
           ORDER BY c.id, dq.sent_at DESC
+        `),
+        // Subpoenas due today
+        pool.query(`
+          SELECT s.*, c.case_number
+          FROM subpoenas s
+          JOIN cases c ON s.case_id = c.id
+          WHERE s.response_due_date = CURRENT_DATE
+            AND s.status IN ('served', 'issued')
+          ORDER BY s.recipient_name
+        `),
+        // Subpoenas overdue
+        pool.query(`
+          SELECT s.*, c.case_number
+          FROM subpoenas s
+          JOIN cases c ON s.case_id = c.id
+          WHERE s.response_due_date < CURRENT_DATE
+            AND s.status IN ('served', 'issued')
+          ORDER BY s.response_due_date ASC
         `)
       ]);
 
@@ -84,6 +102,8 @@ export default async function dashboardRoutes(fastify, opts) {
         recent_contacts: recentContacts.rows,
         questionnaire_followups: questionnaireFollowups.rows,
         questionnaire_overdue: questionnaireOverdue.rows,
+        subpoenas_due_today: subpoenasDueToday.rows,
+        subpoenas_overdue: subpoenasOverdue.rows,
       };
     } catch (err) {
       request.log.error(err);
