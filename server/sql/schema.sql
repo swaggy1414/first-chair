@@ -291,3 +291,106 @@ CREATE TABLE IF NOT EXISTS case_similarity_log (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_case_similarity_source ON case_similarity_log(source_case_id);
+
+-- Filevine integration column on cases
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS filevine_project_id VARCHAR(255);
+
+-- Medical Records Analysis
+CREATE TABLE IF NOT EXISTS medical_records_analysis (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  uploaded_by UUID REFERENCES users(id),
+  file_name VARCHAR(500),
+  file_size BIGINT,
+  file_path VARCHAR(1000),
+  source VARCHAR(50) DEFAULT 'manual_upload' CHECK (source IN ('manual_upload','filevine')),
+  analysis_status VARCHAR(50) DEFAULT 'pending' CHECK (analysis_status IN ('pending','processing','complete','error')),
+  related_treatment_count INTEGER DEFAULT 0,
+  unrelated_treatment_count INTEGER DEFAULT 0,
+  total_billed_amount NUMERIC DEFAULT 0,
+  processed_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_medical_records_analysis_case ON medical_records_analysis(case_id);
+
+-- Treatment Line Items
+CREATE TABLE IF NOT EXISTS treatment_line_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  medical_records_analysis_id UUID NOT NULL REFERENCES medical_records_analysis(id) ON DELETE CASCADE,
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  date_of_service DATE,
+  provider_name VARCHAR(255),
+  procedure_code VARCHAR(50),
+  description TEXT,
+  amount NUMERIC DEFAULT 0,
+  is_related BOOLEAN DEFAULT true,
+  ai_confidence INTEGER,
+  flag_reason TEXT,
+  paralegal_override BOOLEAN,
+  reviewed_by_paralegal UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_treatment_line_items_analysis ON treatment_line_items(medical_records_analysis_id);
+CREATE INDEX IF NOT EXISTS idx_treatment_line_items_case ON treatment_line_items(case_id);
+
+-- Liens
+CREATE TABLE IF NOT EXISTS liens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  health_plan_name VARCHAR(255),
+  plan_type VARCHAR(100),
+  lien_status VARCHAR(50) DEFAULT 'pending' CHECK (lien_status IN ('pending','active','negotiating','resolved','paid','disputed')),
+  subrogation_company VARCHAR(255),
+  subrogation_contact_name VARCHAR(255),
+  subrogation_contact_phone VARCHAR(50),
+  subrogation_contact_email VARCHAR(255),
+  lien_amount NUMERIC DEFAULT 0,
+  negotiated_amount NUMERIC,
+  hipaa_sent_at TIMESTAMPTZ,
+  lor_sent_at TIMESTAMPTZ,
+  last_update_received TIMESTAMPTZ,
+  next_follow_up_date DATE,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now(),
+  updated_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_liens_case ON liens(case_id);
+
+-- Damages Chart
+CREATE TABLE IF NOT EXISTS damages_chart (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  total_medical_bills NUMERIC DEFAULT 0,
+  related_medical_bills NUMERIC DEFAULT 0,
+  lien_total NUMERIC DEFAULT 0,
+  negotiated_lien_total NUMERIC DEFAULT 0,
+  generated_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_damages_chart_case ON damages_chart(case_id);
+
+-- Damages Line Items
+CREATE TABLE IF NOT EXISTS damages_line_items (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  damages_chart_id UUID NOT NULL REFERENCES damages_chart(id) ON DELETE CASCADE,
+  provider_name VARCHAR(255),
+  total_amount NUMERIC DEFAULT 0,
+  visit_count INTEGER DEFAULT 0,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_damages_line_items_chart ON damages_line_items(damages_chart_id);
+
+-- Subrogation Directory
+CREATE TABLE IF NOT EXISTS subrogation_directory (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  health_plan_name VARCHAR(255),
+  subrogation_company VARCHAR(255),
+  contact_name VARCHAR(255),
+  contact_phone VARCHAR(50),
+  contact_email VARCHAR(255),
+  contact_fax VARCHAR(50),
+  address TEXT,
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_subrogation_directory_plan ON subrogation_directory(health_plan_name);

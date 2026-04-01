@@ -26,10 +26,11 @@ import ContactLogTab from '../components/case-tabs/ContactLogTab';
 import TreatmentTab from '../components/case-tabs/TreatmentTab';
 import ExhibitsTab from '../components/case-tabs/ExhibitsTab';
 import DiscoveryTab from '../components/case-tabs/DiscoveryTab';
+import LiensTab from '../components/case-tabs/LiensTab';
 
 const flagColors = { red: 'var(--red)', yellow: 'var(--yellow)', green: 'var(--green)' };
 
-const tabNames = ['Info', 'Deadlines', 'Records', 'Requests', 'Contact Log', 'Treatment', 'Exhibits', 'Discovery'];
+const tabNames = ['Info', 'Deadlines', 'Records', 'Requests', 'Contact Log', 'Treatment', 'Exhibits', 'Discovery', 'Liens & Damages'];
 
 const tabBarStyle = {
   display: 'flex',
@@ -111,6 +112,7 @@ export default function CaseDetail() {
       case 5: return <TreatmentTab caseId={id} />;
       case 6: return <ExhibitsTab caseId={id} />;
       case 7: return <DiscoveryTab caseId={id} />;
+      case 8: return <LiensTab caseId={id} caseData={caseData} />;
       default: return null;
     }
   };

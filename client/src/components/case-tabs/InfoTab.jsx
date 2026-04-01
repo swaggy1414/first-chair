@@ -44,6 +44,7 @@ export default function InfoTab({ caseData, onSave }) {
       incident_date: caseData.incident_date?.slice(0, 10) || '',
       status: caseData.status || '',
       phase: caseData.phase || 'active',
+      filevine_project_id: caseData.filevine_project_id || '',
       notes: caseData.notes || '',
     });
   }, [caseData]);
@@ -214,6 +215,10 @@ export default function InfoTab({ caseData, onSave }) {
             <option value="trial">Trial</option>
             <option value="closed">Closed</option>
           </select>
+        </div>
+        <div style={fieldGroup}>
+          <label style={labelStyle}>Filevine Project ID</label>
+          <input style={inputStyle} value={form.filevine_project_id || ''} onChange={set('filevine_project_id')} disabled={!canEdit} placeholder="Optional — enables Filevine import" />
         </div>
       </div>
       <div style={fieldGroup}>
