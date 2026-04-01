@@ -124,8 +124,13 @@ async function seed() {
     throw err;
   } finally {
     client.release();
-    await pool.end();
   }
 }
 
-seed();
+// Run seed and close pool only when executed directly (not imported)
+const isDirectRun = process.argv[1] && import.meta.url.endsWith(process.argv[1].replace(/\\/g, '/'));
+if (isDirectRun) {
+  seed().then(() => pool.end()).catch(() => pool.end());
+} else {
+  seed();
+}
