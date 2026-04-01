@@ -94,16 +94,17 @@ function ProgressBar({ value, max, color }) {
 }
 
 function BriefCard({ item, onClick }) {
+  const isSubpoena = !!item.recipient_name;
   return (
     <div style={cardStyle} onClick={onClick}>
       <div style={{ fontSize: '0.85rem', fontWeight: 600, color: 'var(--text)' }}>
         {item.case_number || ''}
       </div>
       <div style={{ fontSize: '0.85rem', color: 'var(--text)', marginTop: 2 }}>
-        {item.title || item.recipient_name || item.gap_description || ''}
+        {isSubpoena ? `Subpoena due: ${item.recipient_name}` : (item.title || item.gap_description || '')}
       </div>
       <div style={{ fontSize: '0.78rem', color: 'var(--text-light)', marginTop: 4 }}>
-        Due: {formatDate(item.due_date)}
+        Due: {formatDate(item.due_date || item.response_due_date)}
       </div>
     </div>
   );
