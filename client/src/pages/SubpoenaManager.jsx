@@ -216,11 +216,11 @@ function CreateSubpoenaFlow({ onClose, onCreated }) {
     setError('');
     try {
       const payload = {
-        entity_name: lookupForm.entity_name,
-        state: lookupForm.state,
+        recipient_name: lookupForm.entity_name,
+        state_of_service: lookupForm.state,
+        is_foreign_subpoena: compliance?.is_foreign || false,
         ...agentFields,
         ...details,
-        source: lookupResult?.source || null,
       };
       const result = await api.post(`/subpoenas/create/${details.case_id}`, payload);
       setCreatedSubpoena(result.subpoena || result);
