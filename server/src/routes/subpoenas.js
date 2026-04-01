@@ -8,14 +8,19 @@ async function analyzeWithClaude(systemPrompt, userPrompt) {
     console.log('ANTHROPIC_API_KEY not set — returning mock result');
     return null;
   }
-  const client = new Anthropic({ apiKey });
-  const message = await client.messages.create({
-    model: 'claude-sonnet-4-20250514',
-    max_tokens: 4096,
-    system: systemPrompt,
-    messages: [{ role: 'user', content: userPrompt }],
-  });
-  return message.content[0].text.trim();
+  try {
+    const client = new Anthropic({ apiKey });
+    const message = await client.messages.create({
+      model: 'claude-sonnet-4-20250514',
+      max_tokens: 4096,
+      system: systemPrompt,
+      messages: [{ role: 'user', content: userPrompt }],
+    });
+    return message.content[0].text.trim();
+  } catch (err) {
+    console.error('Claude API call failed:', err.message);
+    return null;
+  }
 }
 
 export default async function subpoenaRoutes(fastify, _opts) {
