@@ -102,10 +102,10 @@ export default async function subpoenaRoutes(fastify, _opts) {
 
       // Cache the result
       const { rows: insertedRows } = await pool.query(`
-        INSERT INTO registered_agent_cache (entity_name, state, registered_agent_name, registered_agent_address, service_address, service_department, notes, verify_recommended, source)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+        INSERT INTO registered_agent_cache (entity_name, state, registered_agent_name, registered_agent_address, service_address, service_department, notes, source)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
         RETURNING *
-      `, [entity_name, state, result.registered_agent_name, result.registered_agent_address, result.service_address, result.service_department, result.notes, result.verify_recommended, source]);
+      `, [entity_name, state, result.registered_agent_name, result.registered_agent_address, result.service_address, result.service_department, result.notes, source]);
 
       return { ...insertedRows[0], cached: false, source };
     } catch (err) {
