@@ -5,6 +5,7 @@ import { api } from '../api/client';
 
 const navItems = [
   { to: '/work-queue', label: 'Work Queue', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/discovery-workspace', label: 'Discovery', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
   { to: '/morning-brief', label: 'Morning Brief' },
   { to: '/cases', label: 'Cases' },
   { to: '/records', label: 'Records' },

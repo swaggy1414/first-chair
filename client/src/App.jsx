@@ -13,6 +13,7 @@ import Settings from './pages/Settings';
 import DiscoveryLibrary from './pages/DiscoveryLibrary';
 import KnowledgeBase from './pages/KnowledgeBase';
 import SubpoenaManager from './pages/SubpoenaManager';
+import DiscoveryWorkspace from './pages/DiscoveryWorkspace';
 
 function DefaultRedirect() {
   const { user } = useAuth();
@@ -36,6 +37,7 @@ export default function App() {
         <Route path="/discovery-library" element={<DiscoveryLibrary />} />
         <Route path="/knowledge-base" element={<KnowledgeBase />} />
         <Route path="/subpoena-manager" element={<SubpoenaManager />} />
+        <Route path="/discovery-workspace" element={<DiscoveryWorkspace />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

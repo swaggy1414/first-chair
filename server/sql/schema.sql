@@ -469,3 +469,69 @@ CREATE TABLE IF NOT EXISTS subpoena_responses (
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_subpoena_responses_subpoena ON subpoena_responses(subpoena_id);
+
+-- Opposing Counsel
+CREATE TABLE IF NOT EXISTS opposing_counsel (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  firm_name VARCHAR(255),
+  email VARCHAR(255),
+  phone VARCHAR(50),
+  state_bar_number VARCHAR(100),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Judges
+CREATE TABLE IF NOT EXISTS judges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  name VARCHAR(255) NOT NULL,
+  court VARCHAR(255),
+  jurisdiction VARCHAR(255),
+  county VARCHAR(255),
+  state VARCHAR(10),
+  notes TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
+-- Case-Opposing Counsel link
+CREATE TABLE IF NOT EXISTS case_opposing_counsel (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  opposing_counsel_id UUID NOT NULL REFERENCES opposing_counsel(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_case_opposing_counsel_case ON case_opposing_counsel(case_id);
+CREATE INDEX IF NOT EXISTS idx_case_opposing_counsel_oc ON case_opposing_counsel(opposing_counsel_id);
+
+-- Case-Judges link
+CREATE TABLE IF NOT EXISTS case_judges (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  judge_id UUID NOT NULL REFERENCES judges(id) ON DELETE CASCADE,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_case_judges_case ON case_judges(case_id);
+CREATE INDEX IF NOT EXISTS idx_case_judges_judge ON case_judges(judge_id);
+
+-- Firm Documents
+CREATE TABLE IF NOT EXISTS firm_documents (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  title VARCHAR(500) NOT NULL,
+  document_type VARCHAR(100),
+  file_name VARCHAR(500),
+  file_path VARCHAR(1000),
+  file_size BIGINT,
+  case_id UUID REFERENCES cases(id) ON DELETE SET NULL,
+  uploaded_by UUID REFERENCES users(id),
+  ai_summary TEXT,
+  extracted_issues TEXT,
+  key_clauses TEXT,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_firm_documents_case ON firm_documents(case_id);
+CREATE INDEX IF NOT EXISTS idx_firm_documents_type ON firm_documents(document_type);
+
+-- Cases: opposing_counsel_id and judge_id
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS opposing_counsel_id UUID REFERENCES opposing_counsel(id) ON DELETE SET NULL;
+ALTER TABLE cases ADD COLUMN IF NOT EXISTS judge_id UUID REFERENCES judges(id) ON DELETE SET NULL;

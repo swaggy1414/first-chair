@@ -88,7 +88,7 @@ export default async function casesRoutes(fastify, opts) {
   fastify.put('/:id', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
       const fields = request.body;
-      const allowed = ['case_number', 'client_name', 'client_phone', 'client_email', 'incident_date', 'incident_type', 'status', 'assigned_paralegal_id', 'assigned_attorney_id', 'flag_color', 'flag_note', 'notes', 'phase', 'filevine_project_id'];
+      const allowed = ['case_number', 'client_name', 'client_phone', 'client_email', 'incident_date', 'incident_type', 'status', 'assigned_paralegal_id', 'assigned_attorney_id', 'flag_color', 'flag_note', 'notes', 'phase', 'filevine_project_id', 'opposing_counsel_id', 'judge_id'];
       const sets = [];
       const params = [];
       for (const key of allowed) {
