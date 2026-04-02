@@ -26,7 +26,7 @@ export default function DiscoveryWorkspace() {
 
   // Load cases on mount
   useEffect(() => {
-    api.get('/discovery-workspace/cases')
+    api.get('/discovery-workspace')
       .then((res) => {
         const list = Array.isArray(res) ? res : res.cases || [];
         setCases(list);
