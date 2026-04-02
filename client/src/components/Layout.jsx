@@ -1,8 +1,11 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../api/client';
 
 const navItems = [
-  { to: '/', label: 'Morning Brief' },
+  { to: '/work-queue', label: 'Work Queue', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/morning-brief', label: 'Morning Brief' },
   { to: '/cases', label: 'Cases' },
   { to: '/records', label: 'Records' },
   { to: '/attorney-queue', label: 'Attorney Queue' },
@@ -85,6 +88,15 @@ const contentStyle = {
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const [criticalCount, setCriticalCount] = useState(0);
+
+  useEffect(() => {
+    api.get('/work-queue').then(problems => {
+      if (Array.isArray(problems)) {
+        setCriticalCount(problems.filter(p => p.urgency === 'critical').length);
+      }
+    }).catch(() => {});
+  }, []);
 
   const handleLogout = async () => {
     await logout();
@@ -106,6 +118,11 @@ export default function Layout({ children }) {
               style={({ isActive }) => (isActive ? linkActive : linkBase)}
             >
               {item.label}
+              {item.to === '/work-queue' && criticalCount > 0 && (
+                <span style={{ marginLeft: 8, background: 'var(--red)', color: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700 }}>
+                  {criticalCount}
+                </span>
+              )}
             </NavLink>
           ))}
         </nav>
