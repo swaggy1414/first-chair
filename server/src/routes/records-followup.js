@@ -23,7 +23,7 @@ export default async function recordsFollowupRoutes(fastify, _opts) {
       let query = `
         SELECT fl.*, rr.provider_name, rr.request_type, rr.requested_date,
           c.case_number, c.client_name, u.name AS sent_by_name,
-          EXTRACT(DAY FROM CURRENT_DATE - rr.requested_date)::int AS days_outstanding
+          (CURRENT_DATE - rr.requested_date) AS days_outstanding
         FROM records_followup_log fl
         JOIN records_requests rr ON fl.records_request_id = rr.id
         JOIN cases c ON fl.case_id = c.id
@@ -51,7 +51,7 @@ export default async function recordsFollowupRoutes(fastify, _opts) {
       const { rows } = await pool.query(`
         SELECT fl.*, rr.provider_name, rr.request_type,
           c.case_number, c.client_name,
-          EXTRACT(DAY FROM CURRENT_DATE - rr.requested_date)::int AS days_outstanding
+          (CURRENT_DATE - rr.requested_date) AS days_outstanding
         FROM records_followup_log fl
         JOIN records_requests rr ON fl.records_request_id = rr.id
         JOIN cases c ON fl.case_id = c.id

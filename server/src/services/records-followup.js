@@ -45,7 +45,7 @@ export async function runFollowupCheck() {
     const { rows: requests } = await pool.query(`
       SELECT rr.id, rr.case_id, rr.provider_name, rr.request_type, rr.requested_date, rr.status,
         c.case_number, c.client_name,
-        EXTRACT(DAY FROM CURRENT_DATE - rr.requested_date)::int AS days_outstanding
+        (CURRENT_DATE - rr.requested_date) AS days_outstanding
       FROM records_requests rr
       JOIN cases c ON rr.case_id = c.id
       WHERE rr.status IN ('pending', 'sent')
