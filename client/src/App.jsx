@@ -14,6 +14,7 @@ import DiscoveryLibrary from './pages/DiscoveryLibrary';
 import KnowledgeBase from './pages/KnowledgeBase';
 import SubpoenaManager from './pages/SubpoenaManager';
 import DiscoveryWorkspace from './pages/DiscoveryWorkspace';
+import RecordsFollowup from './pages/RecordsFollowup';
 
 function DefaultRedirect() {
   const { user } = useAuth();
@@ -32,6 +33,7 @@ export default function App() {
         <Route path="/cases" element={<CaseList />} />
         <Route path="/cases/:id" element={<CaseDetail />} />
         <Route path="/records" element={<RecordsTracker />} />
+        <Route path="/records-followup" element={<RecordsFollowup />} />
         <Route path="/attorney-queue" element={<AttorneyQueue />} />
         <Route path="/capacity" element={<CapacityDashboard />} />
         <Route path="/discovery-library" element={<DiscoveryLibrary />} />

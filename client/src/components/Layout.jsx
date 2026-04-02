@@ -9,6 +9,7 @@ const navItems = [
   { to: '/morning-brief', label: 'Morning Brief' },
   { to: '/cases', label: 'Cases' },
   { to: '/records', label: 'Records' },
+  { to: '/records-followup', label: 'Follow-Up Queue', roles: ['admin', 'supervisor', 'paralegal'] },
   { to: '/attorney-queue', label: 'Attorney Queue' },
   { to: '/capacity', label: 'Capacity' },
   { to: '/discovery-library', label: 'Discovery Library', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
