@@ -78,7 +78,7 @@ export default function WorkQueue() {
     function fetchProblems() {
       api.get('/work-queue')
         .then((data) => {
-          setProblems(Array.isArray(data) ? data : []);
+          setProblems(Array.isArray(data) ? data : data.problems || []);
           setError('');
         })
         .catch((err) => setError(err.message))

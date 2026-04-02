@@ -91,10 +91,9 @@ export default function Layout({ children }) {
   const [criticalCount, setCriticalCount] = useState(0);
 
   useEffect(() => {
-    api.get('/work-queue').then(problems => {
-      if (Array.isArray(problems)) {
-        setCriticalCount(problems.filter(p => p.urgency === 'critical').length);
-      }
+    api.get('/work-queue').then(data => {
+      const list = Array.isArray(data) ? data : data.problems || [];
+      setCriticalCount(list.filter(p => p.urgency === 'critical').length);
     }).catch(() => {});
   }, []);
 
