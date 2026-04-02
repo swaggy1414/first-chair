@@ -535,3 +535,19 @@ CREATE INDEX IF NOT EXISTS idx_firm_documents_type ON firm_documents(document_ty
 -- Cases: opposing_counsel_id and judge_id
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS opposing_counsel_id UUID REFERENCES opposing_counsel(id) ON DELETE SET NULL;
 ALTER TABLE cases ADD COLUMN IF NOT EXISTS judge_id UUID REFERENCES judges(id) ON DELETE SET NULL;
+
+-- Records Follow-Up Log
+CREATE TABLE IF NOT EXISTS records_followup_log (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  records_request_id UUID NOT NULL REFERENCES records_requests(id) ON DELETE CASCADE,
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  followup_type VARCHAR(20) NOT NULL CHECK (followup_type IN ('day_14','day_30','day_45','day_60')),
+  letter_text TEXT,
+  status VARCHAR(20) DEFAULT 'queued' CHECK (status IN ('queued','sent','cancelled')),
+  queued_at TIMESTAMPTZ DEFAULT now(),
+  sent_at TIMESTAMPTZ,
+  sent_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_followup_log_request ON records_followup_log(records_request_id);
+CREATE INDEX IF NOT EXISTS idx_followup_log_case ON records_followup_log(case_id);

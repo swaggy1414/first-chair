@@ -50,6 +50,7 @@ import subpoenaRoutes from './routes/subpoenas.js';
 import workQueueRoutes from './routes/work-queue.js';
 import discoveryWorkspaceRoutes from './routes/discovery-workspace.js';
 import firmBrainRoutes from './routes/firm-brain.js';
+import recordsFollowupRoutes from './routes/records-followup.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -86,6 +87,7 @@ await fastify.register(subpoenaRoutes, { prefix: '/api/subpoenas' });
 await fastify.register(workQueueRoutes, { prefix: '/api/work-queue' });
 await fastify.register(discoveryWorkspaceRoutes, { prefix: '/api/discovery-workspace' });
 await fastify.register(firmBrainRoutes, { prefix: '/api/firm-brain' });
+await fastify.register(recordsFollowupRoutes, { prefix: '/api/records-followup' });
 
 try {
   await fastify.listen({ port: parseInt(process.env.PORT || '3001'), host: '0.0.0.0' });
