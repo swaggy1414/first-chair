@@ -60,7 +60,7 @@ await fastify.register(cors, {
 
 await fastify.register(jwt, {
   secret: process.env.JWT_SECRET || 'first-chair-jwt-secret-2025',
-  sign: { expiresIn: '8h' },
+  sign: { expiresIn: process.env.JWT_EXPIRY || '24h' },
 });
 
 await fastify.register(multipart, { limits: { fileSize: 50 * 1024 * 1024 } });
