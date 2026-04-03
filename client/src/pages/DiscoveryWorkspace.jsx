@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
 import { api, API_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import DefendantDeficiencies from '../components/discovery-tabs/DefendantDeficiencies';
+import MotionToCompel from '../components/discovery-tabs/MotionToCompel';
 
 const GAP_STATUSES = ['open', 'client_notified', 'response_received', 'resolved', 'waived'];
 
@@ -23,6 +25,8 @@ export default function DiscoveryWorkspace() {
   const [emailModal, setEmailModal] = useState(null);
   const [generatingEmail, setGeneratingEmail] = useState(false);
   const [expandedGaps, setExpandedGaps] = useState({});
+  const [uploadSide, setUploadSide] = useState('defendant');
+  const [workspaceTab, setWorkspaceTab] = useState('gaps');
 
   // Load cases on mount
   useEffect(() => {
@@ -72,6 +76,7 @@ export default function DiscoveryWorkspace() {
     try {
       const formData = new FormData();
       formData.append('file', file);
+      formData.append('response_party', uploadSide);
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/discovery/upload/${activeCaseId}`, {
         method: 'POST',
@@ -99,14 +104,15 @@ export default function DiscoveryWorkspace() {
     }
   };
 
-  // Gap status update
-  const handleGapUpdate = async (gapId, status) => {
+  // Gap update (status or action)
+  const handleGapUpdate = async (gapId, updates) => {
     try {
       const token = localStorage.getItem('token');
+      const body = typeof updates === 'string' ? { status: updates } : updates;
       const res = await fetch(`${API_URL}/discovery/gaps/${gapId}`, {
         method: 'PATCH',
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status }),
+        body: JSON.stringify(body),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
@@ -273,7 +279,39 @@ export default function DiscoveryWorkspace() {
               )}
             </div>
 
+            {/* WORKSPACE TABS */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: 20, borderBottom: '2px solid var(--border)' }}>
+              {[
+                { key: 'gaps', label: 'Gap Analysis' },
+                { key: 'deficiencies', label: 'Defendant Deficiencies' },
+                { key: 'motion', label: 'Motion to Compel' },
+              ].map(tab => (
+                <button key={tab.key} type="button" onClick={() => setWorkspaceTab(tab.key)} style={{
+                  padding: '10px 20px', fontSize: '0.9rem', fontWeight: workspaceTab === tab.key ? 600 : 400,
+                  color: workspaceTab === tab.key ? '#2A6DB5' : 'var(--text-light)', background: 'none', border: 'none',
+                  borderBottom: workspaceTab === tab.key ? '2px solid #2A6DB5' : '2px solid transparent', marginBottom: -2, cursor: 'pointer',
+                }}>
+                  {tab.label}
+                </button>
+              ))}
+            </div>
+
+            {workspaceTab === 'deficiencies' && <DefendantDeficiencies caseId={activeCaseId} />}
+            {workspaceTab === 'motion' && <MotionToCompel caseId={activeCaseId} caseName={summary?.client_name || ''} caseNumber={summary?.case_number || ''} />}
+            {workspaceTab === 'gaps' && (<>
+
             {/* UPLOAD ZONE */}
+            <div style={{ display: 'flex', gap: 0, marginBottom: 12 }}>
+              {['plaintiff', 'defendant'].map(side => (
+                <button key={side} type="button" onClick={() => setUploadSide(side)} style={{
+                  padding: '8px 20px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)',
+                  background: uploadSide === side ? '#1C3557' : 'var(--white)', color: uploadSide === side ? '#fff' : 'var(--text)',
+                  borderRadius: side === 'plaintiff' ? '6px 0 0 6px' : '0 6px 6px 0',
+                }}>
+                  {side === 'plaintiff' ? 'Plaintiff Response' : 'Defendant Response'}
+                </button>
+              ))}
+            </div>
             <form onSubmit={handleUpload}>
               <div style={{ border: '2px dashed var(--border)', borderRadius: 8, padding: 32, textAlign: 'center', marginBottom: 24, background: 'var(--light-gray)', cursor: 'pointer' }}>
                 {uploading ? (
@@ -350,14 +388,26 @@ export default function DiscoveryWorkspace() {
                           <div style={{ fontSize: '0.75rem', color: 'var(--text-light)', marginTop: 4 }}>{daysOpen} day{daysOpen !== 1 ? 's' : ''} open</div>
                         )}
                       </div>
-                      <div style={{ marginLeft: 12 }}>
+                      <div style={{ marginLeft: 12, display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
                         <select
                           value={gap.status}
-                          onChange={(e) => handleGapUpdate(gap.id, e.target.value)}
+                          onChange={(e) => handleGapUpdate(gap.id, { status: e.target.value })}
                           style={{ padding: '4px 8px', fontSize: '0.78rem', borderRadius: 4, border: '1px solid var(--border)' }}
                         >
                           {GAP_STATUSES.map((s) => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                         </select>
+                        {gap.status === 'open' && !gap.gap_action && (
+                          <div style={{ display: 'flex', gap: 4 }}>
+                            <button type="button" onClick={() => handleGapUpdate(gap.id, { gap_action: 'confirmed', status: 'open' })} style={{ padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600, background: '#C6F6D5', color: '#276749', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Confirm</button>
+                            <button type="button" onClick={() => handleGapUpdate(gap.id, { gap_action: 'objection_applied' })} style={{ padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600, background: '#BEE3F8', color: '#2A6DB5', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Objection</button>
+                            <button type="button" onClick={() => handleGapUpdate(gap.id, { gap_action: 'dismissed', status: 'waived' })} style={{ padding: '3px 8px', fontSize: '0.72rem', fontWeight: 600, background: '#E2E8F0', color: '#718096', border: 'none', borderRadius: 4, cursor: 'pointer' }}>Dismiss</button>
+                          </div>
+                        )}
+                        {gap.gap_action && (
+                          <span style={{ padding: '2px 8px', borderRadius: 10, fontSize: '0.7rem', fontWeight: 600, color: '#fff', background: gap.gap_action === 'confirmed' ? '#38A169' : gap.gap_action === 'objection_applied' ? '#2A6DB5' : '#718096' }}>
+                            {gap.gap_action === 'confirmed' ? 'Confirmed' : gap.gap_action === 'objection_applied' ? 'Objection Applied' : 'Dismissed'}
+                          </span>
+                        )}
                       </div>
                     </div>
                     {isExpanded && (
@@ -369,12 +419,18 @@ export default function DiscoveryWorkspace() {
                           </div>
                         )}
                         {gap.response_received && (
-                          <div>
+                          <div style={{ marginBottom: 8 }}>
                             <div style={{ fontWeight: 600, color: '#1C3557', marginBottom: 4 }}>Response Received:</div>
                             <div style={{ color: 'var(--text)' }}>{gap.response_received}</div>
                           </div>
                         )}
-                        {!gap.original_request_text && !gap.response_received && (
+                        {gap.ai_reasoning && (
+                          <div style={{ background: '#EBF5FF', border: '1px solid #BEE3F8', borderRadius: 6, padding: 12, marginBottom: 8 }}>
+                            <div style={{ fontWeight: 600, color: '#2A6DB5', marginBottom: 4, fontSize: '0.8rem' }}>AI Reasoning:</div>
+                            <div style={{ color: 'var(--text)', fontSize: '0.85rem', lineHeight: 1.5 }}>{gap.ai_reasoning}</div>
+                          </div>
+                        )}
+                        {!gap.original_request_text && !gap.response_received && !gap.ai_reasoning && (
                           <div style={{ color: 'var(--text-light)' }}>No additional details available</div>
                         )}
                       </div>
@@ -408,6 +464,8 @@ export default function DiscoveryWorkspace() {
             )}
 
             {/* EMAIL MODAL */}
+            </>)}
+
             {emailModal && (
               <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000 }}>
                 <div style={{ background: '#fff', borderRadius: 8, padding: 24, maxWidth: 600, width: '90%', maxHeight: '80vh', overflow: 'auto' }}>

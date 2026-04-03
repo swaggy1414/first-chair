@@ -551,3 +551,12 @@ CREATE TABLE IF NOT EXISTS records_followup_log (
 );
 CREATE INDEX IF NOT EXISTS idx_followup_log_request ON records_followup_log(records_request_id);
 CREATE INDEX IF NOT EXISTS idx_followup_log_case ON records_followup_log(case_id);
+
+-- A2: Plaintiff/Defendant toggle
+ALTER TABLE discovery_responses ADD COLUMN IF NOT EXISTS response_party VARCHAR(20) DEFAULT 'defendant';
+
+-- A3: AI reasoning notes per gap
+ALTER TABLE discovery_gaps ADD COLUMN IF NOT EXISTS ai_reasoning TEXT;
+
+-- A4: Gap actions
+ALTER TABLE discovery_gaps ADD COLUMN IF NOT EXISTS gap_action VARCHAR(50) CHECK (gap_action IN ('confirmed','objection_applied','dismissed'));

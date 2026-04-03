@@ -34,23 +34,24 @@ export default async function discoveryRoutes(fastify, _opts) {
         return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Case not found' });
       }
 
-      const file = await request.file();
-      if (!file) {
+      const data = await request.file();
+      if (!data) {
         return reply.status(400).send({ statusCode: 400, error: 'Bad Request', message: 'No file uploaded' });
       }
 
-      const buffer = await file.toBuffer();
-      const ext = extname(file.filename);
+      const buffer = await data.toBuffer();
+      const ext = extname(data.filename);
       const storedName = `${randomUUID()}${ext}`;
       await mkdir(UPLOAD_DIR, { recursive: true });
       await writeFile(join(UPLOAD_DIR, storedName), buffer);
 
+      const responseParty = data.fields?.response_party?.value || request.query.response_party || 'defendant';
       const filePath = join(UPLOAD_DIR, storedName);
       const { rows } = await pool.query(`
-        INSERT INTO discovery_responses (case_id, uploaded_by, file_name, file_size, file_path, status)
-        VALUES ($1, $2, $3, $4, $5, 'processing')
+        INSERT INTO discovery_responses (case_id, uploaded_by, file_name, file_size, file_path, response_party, status)
+        VALUES ($1, $2, $3, $4, $5, $6, 'processing')
         RETURNING *
-      `, [caseId, request.user.id, file.filename, buffer.length, filePath]);
+      `, [caseId, request.user.id, data.filename, buffer.length, filePath, responseParty]);
 
       return reply.status(201).send(rows[0]);
     } catch (err) {
@@ -91,6 +92,7 @@ Respond with ONLY a valid JSON object (no markdown):
       "original_request_text": "<the discovery request text or summary>",
       "response_received": "<what was actually provided>",
       "gap_description": "<one sentence explaining the deficiency>",
+      "ai_reasoning": "<2-3 sentences explaining WHY this is a gap, what rule or standard it violates, and what a complete response would look like>",
       "priority": "<high|medium|low>"
     }
   ]
@@ -116,9 +118,9 @@ If you cannot analyze the file content, return realistic sample gaps based on co
 
       if (gaps.length === 0) {
         gaps = [
-          { gap_type: 'incomplete_answer', request_number: 3, request_type: 'interrogatory', original_request_text: 'Describe all medical treatment received as a result of the incident', response_received: 'See medical records', gap_description: 'Response refers to records without providing narrative detail as required', priority: 'high' },
-          { gap_type: 'objection_only', request_number: 7, request_type: 'rpd', original_request_text: 'Produce all photographs taken at the scene of the incident', response_received: 'Objection: overly broad and unduly burdensome', gap_description: 'Boilerplate objection without any production or privilege log', priority: 'high' },
-          { gap_type: 'missing_document', request_number: 5, request_type: 'rpd', original_request_text: 'Produce all communications with insurance carrier regarding this claim', response_received: 'No documents responsive', gap_description: 'Claim of no responsive documents is implausible given active insurance claim', priority: 'medium' },
+          { gap_type: 'incomplete_answer', request_number: 3, request_type: 'interrogatory', original_request_text: 'Describe all medical treatment received as a result of the incident', response_received: 'See medical records', gap_description: 'Response refers to records without providing narrative detail as required', ai_reasoning: 'Under NCRCP Rule 33, interrogatory answers must be complete and responsive. Referring to attached records without narrative detail fails to answer the question as posed. A compliant response would describe each provider, dates of treatment, and nature of care received.', priority: 'high' },
+          { gap_type: 'objection_only', request_number: 7, request_type: 'rpd', original_request_text: 'Produce all photographs taken at the scene of the incident', response_received: 'Objection: overly broad and unduly burdensome', gap_description: 'Boilerplate objection without any production or privilege log', ai_reasoning: 'Boilerplate objections without specific factual basis are disfavored under NCRCP Rule 34. The responding party must state with specificity why the request is burdensome and still produce non-objectionable documents. A privilege log is required for any withheld documents.', priority: 'high' },
+          { gap_type: 'missing_document', request_number: 5, request_type: 'rpd', original_request_text: 'Produce all communications with insurance carrier regarding this claim', response_received: 'No documents responsive', gap_description: 'Claim of no responsive documents is implausible given active insurance claim', ai_reasoning: 'Given that an insurance claim was filed and is active, the assertion of zero responsive documents strains credibility. Communications between insured and carrier regarding the claim are discoverable and not privileged. A motion to compel may be appropriate if supplementation is not provided.', priority: 'medium' },
         ];
         counts = { interrogatory_count: 15, rfa_count: 10, rpd_count: 12 };
       }
@@ -133,10 +135,10 @@ If you cannot analyze the file content, return realistic sample gaps based on co
       const insertedGaps = [];
       for (const gap of gaps) {
         const { rows: gapRows } = await pool.query(`
-          INSERT INTO discovery_gaps (discovery_response_id, case_id, gap_type, request_number, request_type, original_request_text, response_received, gap_description, priority)
-          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+          INSERT INTO discovery_gaps (discovery_response_id, case_id, gap_type, request_number, request_type, original_request_text, response_received, gap_description, ai_reasoning, priority)
+          VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
           RETURNING *
-        `, [responseId, resp.case_id, gap.gap_type, gap.request_number, gap.request_type, gap.original_request_text, gap.response_received, gap.gap_description, gap.priority]);
+        `, [responseId, resp.case_id, gap.gap_type, gap.request_number, gap.request_type, gap.original_request_text, gap.response_received, gap.gap_description, gap.ai_reasoning || null, gap.priority]);
         insertedGaps.push(gapRows[0]);
       }
 
@@ -287,7 +289,7 @@ Keep it concise, professional, and easy for a non-lawyer to understand.`;
   fastify.patch('/gaps/:gapId', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
       const fields = request.body;
-      const allowed = ['status', 'assigned_to', 'due_date', 'resolution_notes', 'priority'];
+      const allowed = ['status', 'assigned_to', 'due_date', 'resolution_notes', 'priority', 'gap_action'];
       const sets = [];
       const params = [];
       for (const key of allowed) {
@@ -311,6 +313,41 @@ Keep it concise, professional, and easy for a non-lawyer to understand.`;
         return reply.status(404).send({ statusCode: 404, error: 'Not Found', message: 'Gap not found' });
       }
       return rows[0];
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
+    }
+  });
+
+  // POST /api/discovery/generate-motion — AI generates motion to compel
+  fastify.post('/generate-motion', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
+    try {
+      const { case_number, client_name, gaps, gap_count } = request.body;
+      const prompt = `You are a PI litigation attorney drafting a Motion to Compel Discovery Responses.
+
+Case: ${case_number} — ${client_name}
+Number of deficiencies: ${gap_count}
+
+Confirmed discovery deficiencies:
+${gaps}
+
+Draft a complete Motion to Compel including:
+1. Caption with court, case number, and parties
+2. Introduction stating the motion's purpose
+3. Background/procedural history
+4. Argument section addressing each deficiency with legal authority
+5. Request for relief including sanctions if appropriate
+6. Certificate of conferral (placeholder)
+7. Signature block
+
+Use North Carolina Rules of Civil Procedure as the governing authority.
+Be specific about each deficiency and why the response is inadequate.
+Professional legal format. Ready for attorney review and filing.`;
+
+      const aiResult = await analyzeWithClaude(prompt);
+      const text = aiResult || `MOTION TO COMPEL DISCOVERY RESPONSES\n\nCase: ${case_number} — ${client_name}\n\n${gap_count} confirmed deficiencies identified.\n\n${gaps}\n\n[Motion text would be generated by AI. Set ANTHROPIC_API_KEY for full generation.]\n\nRespectfully submitted,\n[Attorney Name]\n[Bar Number]\nFirst Chair Legal Team`;
+
+      return { text };
     } catch (err) {
       request.log.error(err);
       return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
