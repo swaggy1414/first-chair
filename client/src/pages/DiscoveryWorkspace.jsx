@@ -48,7 +48,22 @@ export default function DiscoveryWorkspace() {
       api.get(`/discovery-workspace/${activeCaseId}/summary`).catch(() => null),
       api.get(`/discovery-workspace/${activeCaseId}/gaps`).catch(() => ({ gaps: [], missing: [], insufficient: [], confirmed: [] })),
     ]).then(([summaryData, gapsData]) => {
-      setSummary(summaryData);
+      // Flatten summary: merge case fields to top level for easy access
+      if (summaryData && summaryData.case) {
+        const flat = {
+          ...summaryData.case,
+          open_gap_count: Array.isArray(summaryData.open_gaps) ? summaryData.open_gaps.reduce((s, g) => s + Number(g.count || 0), 0) : 0,
+          pending_supplement_count: Number(summaryData.pending_supplement_count || 0),
+          overdue_supplement_count: Number(summaryData.overdue_supplement_count || 0),
+          exhibit_count: Number(summaryData.exhibit_count || 0),
+          resolved_gap_count: Number(summaryData.resolved_gap_count || 0),
+          last_response_date: summaryData.last_response_date,
+          ready_to_file: summaryData.ready_to_file || false,
+        };
+        setSummary(flat);
+      } else {
+        setSummary(summaryData);
+      }
       setGaps(gapsData || { gaps: [], missing: [], insufficient: [], confirmed: [] });
     }).catch((err) => setError(err.message))
       .finally(() => setLoading(false));
@@ -156,11 +171,11 @@ export default function DiscoveryWorkspace() {
 
   const filteredGaps = getFilteredGaps();
   const allGaps = gaps.gaps || [];
-  const openCount = summary?.open_gaps ?? allGaps.filter((g) => g.status === 'open').length;
-  const pendingCount = summary?.pending_supplements ?? allGaps.filter((g) => g.status === 'client_notified').length;
+  const openCount = summary?.open_gap_count ?? allGaps.filter((g) => g.status === 'open').length;
+  const pendingCount = summary?.pending_supplement_count ?? 0;
   const exhibitCount = summary?.exhibit_count ?? 0;
-  const confirmedCount = summary?.confirmed_count ?? (gaps.confirmed || []).length;
-  const hasResponses = summary?.response_count > 0 || allGaps.length > 0;
+  const confirmedCount = summary?.resolved_gap_count ?? (gaps.confirmed || []).length;
+  const hasResponses = summary?.last_response_date || allGaps.length > 0;
 
   return (
     <div style={{ display: 'flex', height: 'calc(100vh - 56px)', marginLeft: -32, marginTop: -28, marginRight: -32, marginBottom: -28 }}>
