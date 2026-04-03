@@ -72,6 +72,20 @@ const migrations = [
   `ALTER TABLE discovery_questionnaires ADD COLUMN IF NOT EXISTS questions_json JSONB`,
   `ALTER TABLE discovery_questionnaires ADD COLUMN IF NOT EXISTS mapped_from_response_id UUID`,
 
+  // Casey's Dashboard: Deficiency Letters
+  `CREATE TABLE IF NOT EXISTS deficiency_letters (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+    gap_id UUID REFERENCES discovery_gaps(id) ON DELETE SET NULL,
+    letter_text TEXT,
+    status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft','sent','cancelled')),
+    generated_by UUID REFERENCES users(id),
+    sent_at TIMESTAMPTZ,
+    sent_by UUID REFERENCES users(id),
+    created_at TIMESTAMPTZ DEFAULT now()
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_deficiency_letters_case ON deficiency_letters(case_id)`,
+
   // Indexes (safe to re-run)
   `CREATE INDEX IF NOT EXISTS idx_followup_log_request ON records_followup_log(records_request_id)`,
   `CREATE INDEX IF NOT EXISTS idx_followup_log_case ON records_followup_log(case_id)`,

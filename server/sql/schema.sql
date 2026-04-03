@@ -572,3 +572,17 @@ ALTER TABLE discovery_questionnaires ADD COLUMN IF NOT EXISTS mapped_from_respon
 ALTER TABLE discovery_questionnaires DROP CONSTRAINT IF EXISTS discovery_questionnaires_status_check;
 ALTER TABLE discovery_questionnaires ADD CONSTRAINT discovery_questionnaires_status_check
   CHECK (status IN ('draft','sent','responded','overdue'));
+
+-- Casey's Dashboard: Deficiency Letters
+CREATE TABLE IF NOT EXISTS deficiency_letters (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  case_id UUID NOT NULL REFERENCES cases(id) ON DELETE CASCADE,
+  gap_id UUID REFERENCES discovery_gaps(id) ON DELETE SET NULL,
+  letter_text TEXT,
+  status VARCHAR(20) DEFAULT 'draft' CHECK (status IN ('draft','sent','cancelled')),
+  generated_by UUID REFERENCES users(id),
+  sent_at TIMESTAMPTZ,
+  sent_by UUID REFERENCES users(id),
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_deficiency_letters_case ON deficiency_letters(case_id);

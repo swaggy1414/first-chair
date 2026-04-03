@@ -18,6 +18,14 @@ import RecordsFollowup from './pages/RecordsFollowup';
 import FirmBrain from './pages/FirmBrain';
 import Integrations from './pages/Integrations';
 
+// Casey's Discovery Dashboard
+import DiscoveryLayout from './pages/discovery/DiscoveryLayout';
+import DiscoveryDashboard from './pages/discovery/DiscoveryDashboard';
+import GapAnalysis from './pages/discovery/GapAnalysis';
+import SupplementTracker from './pages/discovery/SupplementTracker';
+import DeficiencyLetters from './pages/discovery/DeficiencyLetters';
+import ExhibitRedirect from './pages/discovery/ExhibitRedirect';
+
 function DefaultRedirect() {
   const { user } = useAuth();
   if (user?.role === 'admin') return <Navigate to="/morning-brief" replace />;
@@ -42,6 +50,17 @@ export default function App() {
         <Route path="/knowledge-base" element={<KnowledgeBase />} />
         <Route path="/subpoena-manager" element={<SubpoenaManager />} />
         <Route path="/discovery-workspace" element={<DiscoveryWorkspace />} />
+
+        {/* Casey's Discovery Dashboard */}
+        <Route path="/discovery" element={<DiscoveryLayout />}>
+          <Route index element={<Navigate to="/discovery/dashboard" replace />} />
+          <Route path="dashboard" element={<DiscoveryDashboard />} />
+          <Route path="gaps" element={<GapAnalysis />} />
+          <Route path="supplements" element={<SupplementTracker />} />
+          <Route path="deficiency-letters" element={<DeficiencyLetters />} />
+          <Route path="exhibits" element={<ExhibitRedirect />} />
+        </Route>
+
         <Route path="/firm-brain" element={<FirmBrain />} />
         <Route path="/integrations" element={<Integrations />} />
         <Route path="/settings" element={<Settings />} />
