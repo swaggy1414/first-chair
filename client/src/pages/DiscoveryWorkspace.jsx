@@ -301,28 +301,29 @@ export default function DiscoveryWorkspace() {
             {workspaceTab === 'gaps' && (<>
 
             {/* UPLOAD ZONE */}
-            <div style={{ display: 'flex', gap: 0, marginBottom: 12 }}>
-              {['plaintiff', 'defendant'].map(side => (
-                <button key={side} type="button" onClick={() => setUploadSide(side)} style={{
-                  padding: '8px 20px', fontSize: '0.85rem', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)',
-                  background: uploadSide === side ? '#1C3557' : 'var(--white)', color: uploadSide === side ? '#fff' : 'var(--text)',
-                  borderRadius: side === 'plaintiff' ? '6px 0 0 6px' : '0 6px 6px 0',
-                }}>
-                  {side === 'plaintiff' ? 'Plaintiff Response' : 'Defendant Response'}
-                </button>
-              ))}
-            </div>
             <form onSubmit={handleUpload}>
-              <div style={{ border: '2px dashed var(--border)', borderRadius: 8, padding: 32, textAlign: 'center', marginBottom: 24, background: 'var(--light-gray)', cursor: 'pointer' }}>
+              <div style={{ border: '2px dashed var(--border)', borderRadius: 8, padding: 32, textAlign: 'center', marginBottom: 24, background: 'var(--light-gray)' }}>
                 {uploading ? (
                   <div>
-                    <div style={{ fontSize: '0.95rem', color: '#2A6DB5', fontWeight: 600, marginBottom: 8 }}>AI is reviewing the discovery response...</div>
+                    <div style={{ fontSize: '0.95rem', color: '#2A6DB5', fontWeight: 600, marginBottom: 8 }}>AI is reviewing the {uploadSide} discovery response...</div>
                     <div style={{ width: 24, height: 24, border: '3px solid #E2E8F0', borderTop: '3px solid #2A6DB5', borderRadius: '50%', animation: 'spin 1s linear infinite', margin: '0 auto' }} />
                     <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
                   </div>
                 ) : (
                   <>
-                    <div style={{ fontSize: '0.95rem', color: '#1C3557', fontWeight: 600, marginBottom: 6 }}>Drop discovery response here to analyze</div>
+                    <div style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: 12 }}>Select response type first:</div>
+                    <div style={{ display: 'inline-flex', gap: 0, marginBottom: 16 }}>
+                      {['plaintiff', 'defendant'].map(side => (
+                        <button key={side} type="button" onClick={() => setUploadSide(side)} style={{
+                          padding: '10px 24px', fontSize: '0.9rem', fontWeight: 600, cursor: 'pointer', border: '1px solid var(--border)',
+                          background: uploadSide === side ? '#1C3557' : 'var(--white)', color: uploadSide === side ? '#fff' : 'var(--text)',
+                          borderRadius: side === 'plaintiff' ? '6px 0 0 6px' : '0 6px 6px 0',
+                        }}>
+                          {side === 'plaintiff' ? 'Plaintiff' : 'Defendant'}
+                        </button>
+                      ))}
+                    </div>
+                    <div style={{ fontSize: '0.95rem', color: '#1C3557', fontWeight: 600, marginBottom: 6 }}>Upload {uploadSide} discovery response</div>
                     <div style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginBottom: 12 }}>PDF or DOCX &middot; AI will flag gaps in under 60 seconds</div>
                     <input type="file" name="file" accept=".pdf,.doc,.docx,.txt" required style={{ fontSize: '0.85rem' }} />
                     <div style={{ marginTop: 10 }}>
