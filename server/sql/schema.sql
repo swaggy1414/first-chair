@@ -565,3 +565,10 @@ ALTER TABLE discovery_gaps ADD COLUMN IF NOT EXISTS gap_action VARCHAR(50) CHECK
 ALTER TABLE firm_documents DROP CONSTRAINT IF EXISTS firm_documents_document_type_check;
 ALTER TABLE firm_documents ADD CONSTRAINT firm_documents_document_type_check
   CHECK (document_type IN ('brief','contract','motion','pleading','settlement_agreement','demand_letter','deposition','expert_report','correspondence','other'));
+
+-- C4: Questionnaire mapping fields
+ALTER TABLE discovery_questionnaires ADD COLUMN IF NOT EXISTS questions_json JSONB;
+ALTER TABLE discovery_questionnaires ADD COLUMN IF NOT EXISTS mapped_from_response_id UUID REFERENCES discovery_responses(id) ON DELETE SET NULL;
+ALTER TABLE discovery_questionnaires DROP CONSTRAINT IF EXISTS discovery_questionnaires_status_check;
+ALTER TABLE discovery_questionnaires ADD CONSTRAINT discovery_questionnaires_status_check
+  CHECK (status IN ('draft','sent','responded','overdue'));

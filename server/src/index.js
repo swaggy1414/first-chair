@@ -54,6 +54,7 @@ import recordsFollowupRoutes from './routes/records-followup.js';
 import opposingCounselRoutes from './routes/opposing-counsel.js';
 import judgeProfileRoutes from './routes/judge-profiles.js';
 import firmIntelligenceRoutes from './routes/firm-intelligence.js';
+import workQueueActionRoutes from './routes/work-queue-actions.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -94,9 +95,12 @@ await fastify.register(recordsFollowupRoutes, { prefix: '/api/records-followup' 
 await fastify.register(opposingCounselRoutes, { prefix: '/api/opposing-counsel' });
 await fastify.register(judgeProfileRoutes, { prefix: '/api/judges' });
 await fastify.register(firmIntelligenceRoutes, { prefix: '/api/firm-intelligence' });
+await fastify.register(workQueueActionRoutes, { prefix: '/api/work-queue-actions' });
 
 try {
   await fastify.listen({ port: parseInt(process.env.PORT || '3001'), host: '0.0.0.0' });
+  // Start email intake service (silent when env vars not set)
+  import('./services/email-intake.js').then(m => m.startEmailIntake()).catch(() => {});
 } catch (err) {
   fastify.log.error(err);
   process.exit(1);

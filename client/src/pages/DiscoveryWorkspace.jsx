@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { api, API_URL } from '../api/client';
 import { useAuth } from '../context/AuthContext';
 import DefendantDeficiencies from '../components/discovery-tabs/DefendantDeficiencies';
@@ -8,6 +9,8 @@ const GAP_STATUSES = ['open', 'client_notified', 'response_received', 'resolved'
 
 export default function DiscoveryWorkspace() {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const preselectedCaseId = searchParams.get('case');
 
   // Left panel state
   const [cases, setCases] = useState([]);
@@ -27,6 +30,7 @@ export default function DiscoveryWorkspace() {
   const [expandedGaps, setExpandedGaps] = useState({});
   const [uploadSide, setUploadSide] = useState('defendant');
   const [workspaceTab, setWorkspaceTab] = useState('gaps');
+  const [readiness, setReadiness] = useState(null);
 
   // Load cases on mount
   useEffect(() => {
@@ -34,7 +38,10 @@ export default function DiscoveryWorkspace() {
       .then((res) => {
         const list = Array.isArray(res) ? res : res.cases || [];
         setCases(list);
-        if (list.length > 0) setActiveCaseId(list[0].id);
+        const target = preselectedCaseId && list.some(c => c.id === preselectedCaseId)
+          ? preselectedCaseId
+          : list.length > 0 ? list[0].id : '';
+        if (target) setActiveCaseId(target);
       })
       .catch((err) => setError(err.message));
   }, []);
@@ -47,7 +54,9 @@ export default function DiscoveryWorkspace() {
     Promise.all([
       api.get(`/discovery-workspace/${activeCaseId}/summary`).catch(() => null),
       api.get(`/discovery-workspace/${activeCaseId}/gaps`).catch(() => ({ gaps: [], missing: [], insufficient: [], confirmed: [] })),
-    ]).then(([summaryData, gapsData]) => {
+      api.get(`/discovery-workspace/${activeCaseId}/readiness`).catch(() => null),
+    ]).then(([summaryData, gapsData, readinessData]) => {
+      setReadiness(readinessData);
       // Flatten summary: merge case fields to top level for easy access
       if (summaryData && summaryData.case) {
         const flat = {
@@ -285,10 +294,26 @@ export default function DiscoveryWorkspace() {
               </div>
             </div>
 
-            {/* READY TO FILE */}
+            {/* READY TO FILE — Enhanced */}
             <div style={{ marginBottom: 20 }}>
-              {summary?.ready_to_file ? (
-                <span style={{ padding: '4px 12px', borderRadius: 12, background: '#C6F6D5', color: 'var(--green)', fontSize: '0.8rem', fontWeight: 600 }}>Ready to File</span>
+              {readiness?.ready ? (
+                <div style={{ padding: '10px 16px', borderRadius: 8, background: '#C6F6D5', border: '1px solid #9AE6B4' }}>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--green)' }}>Ready to File</span>
+                  <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginLeft: 8 }}>All gaps resolved, no pending items</span>
+                </div>
+              ) : readiness ? (
+                <div style={{ padding: '10px 16px', borderRadius: 8, background: '#FFF5F5', border: '1px solid #FED7D7' }}>
+                  <div style={{ fontSize: '0.9rem', fontWeight: 700, color: 'var(--red)', marginBottom: 6 }}>
+                    Not Ready — {readiness.blocker_count} item{readiness.blocker_count !== 1 ? 's' : ''} blocking
+                  </div>
+                  <ul style={{ margin: 0, paddingLeft: 18, listStyle: 'disc' }}>
+                    {readiness.blockers.map((b, i) => (
+                      <li key={i} style={{ fontSize: '0.8rem', color: b.severity === 'high' ? 'var(--red)' : 'var(--text)', marginBottom: 3 }}>
+                        {b.message}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               ) : (
                 <span style={{ padding: '4px 12px', borderRadius: 12, background: '#FED7D7', color: 'var(--red)', fontSize: '0.8rem', fontWeight: 600 }}>Not Ready</span>
               )}

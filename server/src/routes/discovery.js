@@ -353,4 +353,37 @@ Professional legal format. Ready for attorney review and filing.`;
       return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
     }
   });
+
+  // POST /api/discovery/map-questionnaire/:caseId — AI generates plain-language questionnaire
+  fastify.post('/map-questionnaire/:caseId', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
+    try {
+      const { caseId } = request.params;
+      const { response_id } = request.body || {};
+
+      // If no response_id provided, find the latest plaintiff response (or any response)
+      let responseId = response_id;
+      if (!responseId) {
+        const { rows } = await pool.query(`
+          SELECT id FROM discovery_responses
+          WHERE case_id = $1
+          ORDER BY
+            CASE WHEN response_party = 'plaintiff' THEN 0 ELSE 1 END,
+            created_at DESC
+          LIMIT 1
+        `, [caseId]);
+        if (rows.length > 0) responseId = rows[0].id;
+      }
+
+      if (!responseId) {
+        return reply.status(400).send({ error: 'No discovery response found for this case. Upload a response first.' });
+      }
+
+      const { mapQuestionnaire } = await import('../services/questionnaire-mapper.js');
+      const result = await mapQuestionnaire(caseId, responseId);
+      return reply.status(201).send(result);
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
+    }
+  });
 }

@@ -1,5 +1,6 @@
 import pool from '../db.js';
 import { authenticate } from '../middleware/auth.js';
+import { checkReadiness } from '../services/readiness-check.js';
 
 export default async function discoveryWorkspaceRoutes(fastify, _opts) {
   fastify.addHook('preHandler', authenticate);
@@ -122,6 +123,17 @@ export default async function discoveryWorkspaceRoutes(fastify, _opts) {
         insufficient: rows.filter(g => ['incomplete_answer', 'evasive_answer', 'objection_only'].includes(g.gap_type)),
         confirmed: rows.filter(g => g.status === 'resolved'),
       };
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });
+    }
+  });
+
+  // GET /api/discovery-workspace/:caseId/readiness — enhanced ready-to-file check
+  fastify.get('/:caseId/readiness', async (request, reply) => {
+    try {
+      const result = await checkReadiness(request.params.caseId);
+      return result;
     } catch (err) {
       request.log.error(err);
       return reply.status(500).send({ statusCode: 500, error: 'Internal Server Error', message: err.message });

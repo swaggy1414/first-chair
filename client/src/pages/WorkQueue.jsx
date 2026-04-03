@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { api } from '../api/client';
 import { useAuth } from '../context/AuthContext';
+import { executeAction, getReviewGapsUrl } from '../services/work-queue-actions';
 
 const ACTION_LABELS = {
   send_letter: 'Send Letter',
@@ -73,6 +74,7 @@ export default function WorkQueue() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [filter, setFilter] = useState('all');
+  const [actionStatus, setActionStatus] = useState({});  // { [problemId]: { msg, ok } }
 
   useEffect(() => {
     function fetchProblems() {
@@ -197,11 +199,30 @@ export default function WorkQueue() {
                   {problem.recommended_action}
                 </div>
               )}
+              {actionStatus[problem.id] && (
+                <div style={{ fontSize: '0.75rem', marginBottom: 4, color: actionStatus[problem.id].ok ? 'var(--green)' : 'var(--red)' }}>
+                  {actionStatus[problem.id].msg}
+                </div>
+              )}
               {problem.action_type && problem.action_type !== 'none' && ACTION_LABELS[problem.action_type] && (
                 <button
-                  onClick={(e) => {
+                  onClick={async (e) => {
                     e.stopPropagation();
-                    navigate(problem.action_url || `/cases/${problem.case_id}`);
+                    if (problem.action_type === 'review_gaps') {
+                      navigate(getReviewGapsUrl(problem));
+                      return;
+                    }
+                    try {
+                      const result = await executeAction(problem.action_type, problem);
+                      if (result && result.navigate) {
+                        navigate(result.navigate);
+                      } else if (result) {
+                        setActionStatus(prev => ({ ...prev, [problem.id]: { msg: result, ok: true } }));
+                        setTimeout(() => setActionStatus(prev => { const n = { ...prev }; delete n[problem.id]; return n; }), 4000);
+                      }
+                    } catch (err) {
+                      setActionStatus(prev => ({ ...prev, [problem.id]: { msg: err.message || 'Action failed', ok: false } }));
+                    }
                   }}
                   style={{
                     padding: '4px 12px',
