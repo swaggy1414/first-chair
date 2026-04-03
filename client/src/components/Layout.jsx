@@ -17,6 +17,7 @@ const navItems = [
   { to: '/knowledge-base', label: 'Knowledge Base', roles: ['admin', 'supervisor'] },
   { separator: true, label: 'Firm' },
   { to: '/firm-brain', label: 'Firm Brain', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/integrations', label: 'Integrations', roles: ['admin'] },
   { to: '/settings', label: 'Settings' },
 ];
 

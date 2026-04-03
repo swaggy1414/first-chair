@@ -1,5 +1,5 @@
 import pool from '../db.js';
-import { authenticate } from '../middleware/auth.js';
+import { authenticate, authorize } from '../middleware/auth.js';
 
 export default async function workQueueActionRoutes(fastify, _opts) {
   fastify.addHook('preHandler', authenticate);
@@ -122,6 +122,18 @@ export default async function workQueueActionRoutes(fastify, _opts) {
         message: 'Escalated to attorney — critical priority',
         attorney_request: rows[0],
       });
+    } catch (err) {
+      request.log.error(err);
+      return reply.status(500).send({ error: err.message });
+    }
+  });
+
+  // POST /api/work-queue-actions/seed-demo — admin only, seeds demo data
+  fastify.post('/seed-demo', { preHandler: [authorize('admin')] }, async (request, reply) => {
+    try {
+      const { seedDemo } = await import('../seed-demo.js');
+      const result = await seedDemo();
+      return result;
     } catch (err) {
       request.log.error(err);
       return reply.status(500).send({ error: err.message });

@@ -16,6 +16,7 @@ import SubpoenaManager from './pages/SubpoenaManager';
 import DiscoveryWorkspace from './pages/DiscoveryWorkspace';
 import RecordsFollowup from './pages/RecordsFollowup';
 import FirmBrain from './pages/FirmBrain';
+import Integrations from './pages/Integrations';
 
 function DefaultRedirect() {
   const { user } = useAuth();
@@ -42,6 +43,7 @@ export default function App() {
         <Route path="/subpoena-manager" element={<SubpoenaManager />} />
         <Route path="/discovery-workspace" element={<DiscoveryWorkspace />} />
         <Route path="/firm-brain" element={<FirmBrain />} />
+        <Route path="/integrations" element={<Integrations />} />
         <Route path="/settings" element={<Settings />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

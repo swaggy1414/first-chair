@@ -28,6 +28,14 @@ try {
   console.log('Seed complete.');
 }
 
+// Always run migrations (safe — all use IF NOT EXISTS)
+try {
+  const { runMigrations } = await import('./migrations.js');
+  await runMigrations();
+} catch (err) {
+  console.warn('Migration runner error:', err.message);
+}
+
 import authRoutes from './routes/auth.js';
 import casesRoutes from './routes/cases.js';
 import deadlinesRoutes from './routes/deadlines.js';
