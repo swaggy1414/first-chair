@@ -15,6 +15,8 @@ const navItems = [
   { to: '/discovery-library', label: 'Discovery Library', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
   { to: '/subpoena-manager', label: 'Subpoenas', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
   { to: '/knowledge-base', label: 'Knowledge Base', roles: ['admin', 'supervisor'] },
+  { separator: true, label: 'Firm' },
+  { to: '/firm-brain', label: 'Firm Brain', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
   { to: '/settings', label: 'Settings' },
 ];
 
@@ -111,7 +113,11 @@ export default function Layout({ children }) {
         <nav style={navStyle}>
           {navItems
             .filter((item) => !item.roles || item.roles.includes(user?.role))
-            .map((item) => (
+            .map((item, idx) => item.separator ? (
+            <div key={`sep-${idx}`} style={{ padding: '12px 20px 4px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>
+              {item.label}
+            </div>
+            ) : (
             <NavLink
               key={item.to}
               to={item.to}

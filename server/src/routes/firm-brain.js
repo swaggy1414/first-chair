@@ -71,7 +71,7 @@ export default async function firmBrainRoutes(fastify, _opts) {
       }
 
       const { rows } = await pool.query(`
-        INSERT INTO firm_documents (title, document_type, file_name, file_path, file_size, case_id, uploaded_by, ai_summary, extracted_issues, key_clauses)
+        INSERT INTO firm_documents (title, document_type, file_name, file_path, file_size, case_id, uploaded_by, ai_summary, ai_extracted_issues, ai_key_clauses)
         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
         RETURNING *
       `, [title, documentType, file.filename, filePath, buffer.length, caseId, request.user.id, aiSummary, extractedIssues, keyClauses]);

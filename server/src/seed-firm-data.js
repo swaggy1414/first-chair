@@ -526,6 +526,88 @@ async function seed() {
     `);
     console.log('Case knowledge seeded (3)');
 
+    // ===================== OPPOSING COUNSEL =====================
+    const ocIds = {
+      oc1: '0c100000-0000-0000-0000-000000000001',
+      oc2: '0c100000-0000-0000-0000-000000000002',
+      oc3: '0c100000-0000-0000-0000-000000000003',
+      oc4: '0c100000-0000-0000-0000-000000000004',
+      oc5: '0c100000-0000-0000-0000-000000000005',
+    };
+    await client.query(`
+      INSERT INTO opposing_counsel (id, name, firm_name, email, phone, state_bar_number, notes) VALUES
+        ('${ocIds.oc1}', 'Richard Harmon',    'Harmon & Blake LLP',         'rharmon@harmonblake.com',     '(919) 555-8001', 'NC-32451', 'Aggressive litigator. Files excessive motions. Tends to lowball initial offers then increase at mediation.'),
+        ('${ocIds.oc2}', 'Catherine Reeves',  'Statewide Insurance Defense', 'creeves@sidlaw.com',         '(704) 555-8002', 'NC-28773', 'Experienced insurance defense. Professional but firm. Reasonable in discovery.'),
+        ('${ocIds.oc3}', 'Thomas Blackwell',  'Blackwell Crawford PC',       'tblackwell@bcpc-law.com',    '(336) 555-8003', 'NC-19842', 'Senior partner. Handles med-mal defense exclusively. Very detail-oriented in discovery.'),
+        ('${ocIds.oc4}', 'Amanda Chen-Watts', 'Parker Daniels & Associates', 'acwatts@parkerdaniels.com',  '(919) 555-8004', 'NC-41205', 'Junior associate. Responsive to discovery requests. Settles quickly when liability is clear.'),
+        ('${ocIds.oc5}', 'Gregory Fontaine',  'Fontaine Law Group',          'gfontaine@fontainelaw.com',  '(252) 555-8005', 'NC-15693', 'Solo practitioner. Handles PI defense for small insurers. Known for delay tactics.')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    console.log('Opposing counsel seeded (5)');
+
+    // Link opposing counsel to cases
+    await client.query(`
+      INSERT INTO case_opposing_counsel (case_id, opposing_counsel_id) VALUES
+        ('${caseId(1)}',  '${ocIds.oc1}'),
+        ('${caseId(3)}',  '${ocIds.oc1}'),
+        ('${caseId(5)}',  '${ocIds.oc2}'),
+        ('${caseId(6)}',  '${ocIds.oc3}'),
+        ('${caseId(8)}',  '${ocIds.oc4}'),
+        ('${caseId(9)}',  '${ocIds.oc4}'),
+        ('${caseId(13)}', '${ocIds.oc3}'),
+        ('${caseId(14)}', '${ocIds.oc2}'),
+        ('${caseId(17)}', '${ocIds.oc5}'),
+        ('${caseId(19)}', '${ocIds.oc1}'),
+        ('${caseId(26)}', '${ocIds.oc1}'),
+        ('${caseId(27)}', '${ocIds.oc4}'),
+        ('${caseId(28)}', '${ocIds.oc2}')
+      ON CONFLICT DO NOTHING
+    `);
+    // Also set direct FK on cases
+    await client.query(`UPDATE cases SET opposing_counsel_id = '${ocIds.oc1}' WHERE id IN ('${caseId(1)}','${caseId(3)}','${caseId(19)}','${caseId(26)}')`);
+    await client.query(`UPDATE cases SET opposing_counsel_id = '${ocIds.oc2}' WHERE id IN ('${caseId(5)}','${caseId(14)}','${caseId(28)}')`);
+    await client.query(`UPDATE cases SET opposing_counsel_id = '${ocIds.oc3}' WHERE id IN ('${caseId(6)}','${caseId(13)}')`);
+    await client.query(`UPDATE cases SET opposing_counsel_id = '${ocIds.oc4}' WHERE id IN ('${caseId(8)}','${caseId(9)}','${caseId(27)}')`);
+    await client.query(`UPDATE cases SET opposing_counsel_id = '${ocIds.oc5}' WHERE id IN ('${caseId(17)}')`);
+    console.log('Opposing counsel linked to cases');
+
+    // ===================== JUDGES =====================
+    const judgeIds = {
+      j1: '0d100000-0000-0000-0000-000000000001',
+      j2: '0d100000-0000-0000-0000-000000000002',
+      j3: '0d100000-0000-0000-0000-000000000003',
+      j4: '0d100000-0000-0000-0000-000000000004',
+    };
+    await client.query(`
+      INSERT INTO judges (id, name, court, jurisdiction, county, state, notes) VALUES
+        ('${judgeIds.j1}', 'Hon. Margaret Chen',      'Wake County Superior Court',        'Superior',   'Wake',         'NC', 'Strict on discovery deadlines. Grants motions to compel readily when good faith effort shown. Prefers concise briefs.'),
+        ('${judgeIds.j2}', 'Hon. David Rutherford',   'Mecklenburg County Superior Court', 'Superior',   'Mecklenburg',  'NC', 'Former plaintiff attorney. Sympathetic to injury claims. Allows generous discovery timelines.'),
+        ('${judgeIds.j3}', 'Hon. Patricia Okonkwo',   'Guilford County Superior Court',    'Superior',   'Guilford',     'NC', 'Tough on both sides. Demands thorough preparation. Known for detailed jury instructions.'),
+        ('${judgeIds.j4}', 'Hon. James Whitfield',    'NC Business Court',                 'Business',   'Wake',         'NC', 'Handles complex litigation. Favors early mediation. Will sanction discovery abuse.')
+      ON CONFLICT (id) DO NOTHING
+    `);
+    console.log('Judges seeded (4)');
+
+    // Link judges to cases
+    await client.query(`
+      INSERT INTO case_judges (case_id, judge_id) VALUES
+        ('${caseId(1)}',  '${judgeIds.j1}'),
+        ('${caseId(5)}',  '${judgeIds.j1}'),
+        ('${caseId(6)}',  '${judgeIds.j1}'),
+        ('${caseId(13)}', '${judgeIds.j2}'),
+        ('${caseId(9)}',  '${judgeIds.j2}'),
+        ('${caseId(17)}', '${judgeIds.j3}'),
+        ('${caseId(19)}', '${judgeIds.j3}'),
+        ('${caseId(26)}', '${judgeIds.j1}'),
+        ('${caseId(27)}', '${judgeIds.j2}'),
+        ('${caseId(28)}', '${judgeIds.j1}')
+      ON CONFLICT DO NOTHING
+    `);
+    await client.query(`UPDATE cases SET judge_id = '${judgeIds.j1}' WHERE id IN ('${caseId(1)}','${caseId(5)}','${caseId(6)}','${caseId(26)}','${caseId(28)}')`);
+    await client.query(`UPDATE cases SET judge_id = '${judgeIds.j2}' WHERE id IN ('${caseId(13)}','${caseId(9)}','${caseId(27)}')`);
+    await client.query(`UPDATE cases SET judge_id = '${judgeIds.j3}' WHERE id IN ('${caseId(17)}','${caseId(19)}')`);
+    console.log('Judges linked to cases');
+
     await client.query('COMMIT');
     console.log('\nFirm data seed complete!');
   } catch (err) {

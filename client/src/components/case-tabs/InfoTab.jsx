@@ -28,6 +28,22 @@ export default function InfoTab({ caseData, onSave }) {
   const [addingNote, setAddingNote] = useState(false);
   const [noteError, setNoteError] = useState('');
 
+  // Opposing counsel state
+  const [opposingCounsel, setOpposingCounsel] = useState([]);
+  const [ocProfile, setOcProfile] = useState(null);
+  const [ocProfileLoading, setOcProfileLoading] = useState(false);
+  const [ocSearch, setOcSearch] = useState('');
+  const [ocSearchResults, setOcSearchResults] = useState([]);
+  const [showOcSearch, setShowOcSearch] = useState(false);
+
+  // Judge state
+  const [judges, setJudges] = useState([]);
+  const [judgeProfile, setJudgeProfile] = useState(null);
+  const [judgeProfileLoading, setJudgeProfileLoading] = useState(false);
+  const [judgeSearch, setJudgeSearch] = useState('');
+  const [judgeSearchResults, setJudgeSearchResults] = useState([]);
+  const [showJudgeSearch, setShowJudgeSearch] = useState(false);
+
   // Close case modal state
   const [showCloseModal, setShowCloseModal] = useState(false);
   const [closeDraft, setCloseDraft] = useState(null);
@@ -48,6 +64,47 @@ export default function InfoTab({ caseData, onSave }) {
       notes: caseData.notes || '',
     });
   }, [caseData]);
+
+  // Fetch opposing counsel for this case
+  const loadOpposingCounsel = useCallback(() => {
+    if (!caseData.id) return;
+    api.get(`/opposing-counsel/by-case/${caseData.id}`)
+      .then((res) => {
+        const list = Array.isArray(res) ? res : [];
+        setOpposingCounsel(list);
+        // Auto-load first counsel's profile
+        if (list.length > 0 && !ocProfile) {
+          setOcProfileLoading(true);
+          api.get(`/opposing-counsel/${list[0].id}/profile`)
+            .then(setOcProfile)
+            .catch(() => {})
+            .finally(() => setOcProfileLoading(false));
+        }
+      })
+      .catch(() => setOpposingCounsel([]));
+  }, [caseData.id]);
+
+  useEffect(() => { loadOpposingCounsel(); }, [loadOpposingCounsel]);
+
+  // Fetch judges for this case
+  const loadJudges = useCallback(() => {
+    if (!caseData.id) return;
+    api.get(`/judges/by-case/${caseData.id}`)
+      .then((res) => {
+        const list = Array.isArray(res) ? res : [];
+        setJudges(list);
+        if (list.length > 0 && !judgeProfile) {
+          setJudgeProfileLoading(true);
+          api.get(`/judges/${list[0].id}/profile`)
+            .then(setJudgeProfile)
+            .catch(() => {})
+            .finally(() => setJudgeProfileLoading(false));
+        }
+      })
+      .catch(() => setJudges([]));
+  }, [caseData.id]);
+
+  useEffect(() => { loadJudges(); }, [loadJudges]);
 
   // Fetch similar cases
   useEffect(() => {
@@ -187,6 +244,78 @@ export default function InfoTab({ caseData, onSave }) {
     };
   };
 
+  const handleOcSearch = async (q) => {
+    setOcSearch(q);
+    if (q.length < 2) { setOcSearchResults([]); return; }
+    try {
+      const res = await api.get(`/opposing-counsel/search?q=${encodeURIComponent(q)}`);
+      setOcSearchResults(Array.isArray(res) ? res : []);
+    } catch { setOcSearchResults([]); }
+  };
+
+  const handleLinkOc = async (ocId) => {
+    try {
+      await api.post('/opposing-counsel/link', { case_id: caseData.id, opposing_counsel_id: ocId });
+      setShowOcSearch(false);
+      setOcSearch('');
+      setOcSearchResults([]);
+      setOcProfile(null);
+      loadOpposingCounsel();
+    } catch {}
+  };
+
+  const handleUnlinkOc = async (ocId) => {
+    try {
+      await api.del(`/opposing-counsel/unlink?case_id=${caseData.id}&opposing_counsel_id=${ocId}`);
+      setOcProfile(null);
+      loadOpposingCounsel();
+    } catch {}
+  };
+
+  const handleViewOcProfile = async (ocId) => {
+    setOcProfileLoading(true);
+    try {
+      const res = await api.get(`/opposing-counsel/${ocId}/profile`);
+      setOcProfile(res);
+    } catch {} finally { setOcProfileLoading(false); }
+  };
+
+  const handleJudgeSearch = async (q) => {
+    setJudgeSearch(q);
+    if (q.length < 2) { setJudgeSearchResults([]); return; }
+    try {
+      const res = await api.get(`/judges/search?q=${encodeURIComponent(q)}`);
+      setJudgeSearchResults(Array.isArray(res) ? res : []);
+    } catch { setJudgeSearchResults([]); }
+  };
+
+  const handleLinkJudge = async (judgeId) => {
+    try {
+      await api.post('/judges/link', { case_id: caseData.id, judge_id: judgeId });
+      setShowJudgeSearch(false);
+      setJudgeSearch('');
+      setJudgeSearchResults([]);
+      setJudgeProfile(null);
+      loadJudges();
+    } catch {}
+  };
+
+  const handleUnlinkJudge = async (judgeId) => {
+    try {
+      await api.del(`/judges/unlink?case_id=${caseData.id}&judge_id=${judgeId}`);
+      setJudgeProfile(null);
+      loadJudges();
+    } catch {}
+  };
+
+  const handleViewJudgeProfile = async (judgeId) => {
+    setJudgeProfileLoading(true);
+    try {
+      const res = await api.get(`/judges/${judgeId}/profile`);
+      setJudgeProfile(res);
+    } catch {} finally { setJudgeProfileLoading(false); }
+  };
+
   const set = (k) => (e) => setForm({ ...form, [k]: e.target.value });
 
   return (
@@ -244,6 +373,244 @@ export default function InfoTab({ caseData, onSave }) {
           {questionnaireMsg && <span style={{ fontSize: '0.85rem', color: questionnaireMsg.includes('success') ? 'var(--green)' : 'var(--red)' }}>{questionnaireMsg}</span>}
         </div>
       )}
+
+      {/* Opposing Counsel Section */}
+      <div style={{ marginTop: 32, borderTop: '1px solid var(--border)', paddingTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--navy)', margin: 0 }}>
+            Opposing Counsel
+          </h3>
+          {canEdit && (
+            <button style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.8rem' }} onClick={() => setShowOcSearch(!showOcSearch)}>
+              {showOcSearch ? 'Cancel' : '+ Add'}
+            </button>
+          )}
+        </div>
+
+        {showOcSearch && (
+          <div style={{ background: 'var(--light-gray)', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+            <input style={inputStyle} placeholder="Search by name or firm..." value={ocSearch} onChange={(e) => handleOcSearch(e.target.value)} />
+            {ocSearchResults.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                {ocSearchResults.filter(r => !opposingCounsel.some(oc => oc.id === r.id)).map((r) => (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '0.85rem' }}>{r.name} — {r.firm_name}</span>
+                    <button style={{ ...btnPrimary, padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleLinkOc(r.id)}>Link</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {opposingCounsel.length === 0 ? (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>No opposing counsel assigned</p>
+        ) : (
+          opposingCounsel.map((oc) => (
+            <div key={oc.id} style={{ background: 'var(--light-gray)', borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--navy)' }}>{oc.name}</span>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-light)', marginLeft: 8 }}>{oc.firm_name}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button style={{ ...btnPrimary, padding: '3px 10px', fontSize: '0.78rem', background: 'var(--navy)' }} onClick={() => handleViewOcProfile(oc.id)}>
+                    View Profile
+                  </button>
+                  {canEdit && (
+                    <button style={{ padding: '3px 10px', fontSize: '0.78rem', background: 'none', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 6, cursor: 'pointer' }} onClick={() => handleUnlinkOc(oc.id)}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-light)', display: 'flex', gap: 16 }}>
+                {oc.email && <span>{oc.email}</span>}
+                {oc.phone && <span>{oc.phone}</span>}
+                {oc.state_bar_number && <span>Bar: {oc.state_bar_number}</span>}
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Opposing Counsel Profile Panel */}
+        {ocProfileLoading && <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>Loading profile...</p>}
+        {ocProfile && !ocProfileLoading && (
+          <div style={{ background: '#EBF5FF', borderRadius: 8, padding: 16, marginTop: 10, border: '1px solid rgba(42,109,181,0.2)' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)', marginTop: 0, marginBottom: 10 }}>
+              Profile: {ocProfile.counsel?.name}
+            </h4>
+
+            {ocProfile.behavior_summary && (
+              <p style={{ fontSize: '0.85rem', color: 'var(--text)', marginBottom: 12, lineHeight: 1.5 }}>
+                {ocProfile.behavior_summary}
+              </p>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--navy)' }}>{ocProfile.stats?.total_cases || 0}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Cases</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--green)' }}>{ocProfile.stats?.settled || 0}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Settled</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--blue)' }}>{ocProfile.stats?.avg_settlement ? '$' + Number(ocProfile.stats.avg_settlement).toLocaleString() : 'N/A'}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Avg Settlement</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)' }}>{ocProfile.stats?.avg_duration_days ? ocProfile.stats.avg_duration_days + 'd' : 'N/A'}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Avg Duration</div>
+              </div>
+            </div>
+
+            {ocProfile.discovery_patterns && ocProfile.discovery_patterns.total_gaps > 0 && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Discovery Behavior</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-light)' }}>
+                  {ocProfile.discovery_patterns.total_gaps} gaps found: {ocProfile.discovery_patterns.evasive_answers} evasive, {ocProfile.discovery_patterns.objection_only} objection-only, {ocProfile.discovery_patterns.no_answer} no-answer
+                </div>
+              </div>
+            )}
+
+            {ocProfile.cases && ocProfile.cases.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Case History</div>
+                {ocProfile.cases.slice(0, 5).map((c, i) => (
+                  <div key={i} style={{ fontSize: '0.82rem', color: 'var(--text-light)', padding: '3px 0' }}>
+                    {c.case_number} — {c.client_name} ({c.incident_type}) — {c.outcome || c.status}
+                    {c.settlement_amount ? ` — $${Number(c.settlement_amount).toLocaleString()}` : ''}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button style={{ marginTop: 8, fontSize: '0.78rem', background: 'none', border: 'none', color: 'var(--blue)', cursor: 'pointer', padding: 0 }} onClick={() => setOcProfile(null)}>
+              Close Profile
+            </button>
+          </div>
+        )}
+      </div>
+
+      {/* Judge Section */}
+      <div style={{ marginTop: 32, borderTop: '1px solid var(--border)', paddingTop: 24 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+          <h3 style={{ fontSize: '1.05rem', fontWeight: 600, color: 'var(--navy)', margin: 0 }}>
+            Assigned Judge
+          </h3>
+          {canEdit && (
+            <button style={{ ...btnPrimary, padding: '5px 12px', fontSize: '0.8rem' }} onClick={() => setShowJudgeSearch(!showJudgeSearch)}>
+              {showJudgeSearch ? 'Cancel' : '+ Add'}
+            </button>
+          )}
+        </div>
+
+        {showJudgeSearch && (
+          <div style={{ background: 'var(--light-gray)', borderRadius: 8, padding: 14, marginBottom: 14 }}>
+            <input style={inputStyle} placeholder="Search by judge name..." value={judgeSearch} onChange={(e) => handleJudgeSearch(e.target.value)} />
+            {judgeSearchResults.length > 0 && (
+              <div style={{ marginTop: 8 }}>
+                {judgeSearchResults.filter(r => !judges.some(j => j.id === r.id)).map((r) => (
+                  <div key={r.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '6px 0', borderBottom: '1px solid var(--border)' }}>
+                    <span style={{ fontSize: '0.85rem' }}>{r.name} — {r.court}</span>
+                    <button style={{ ...btnPrimary, padding: '3px 10px', fontSize: '0.78rem' }} onClick={() => handleLinkJudge(r.id)}>Link</button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {judges.length === 0 ? (
+          <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>No judge assigned</p>
+        ) : (
+          judges.map((j) => (
+            <div key={j.id} style={{ background: 'var(--light-gray)', borderRadius: 8, padding: '12px 14px', marginBottom: 10 }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+                <div>
+                  <span style={{ fontSize: '0.9rem', fontWeight: 600, color: 'var(--navy)' }}>{j.name}</span>
+                  <span style={{ fontSize: '0.82rem', color: 'var(--text-light)', marginLeft: 8 }}>{j.court}</span>
+                </div>
+                <div style={{ display: 'flex', gap: 6 }}>
+                  <button style={{ ...btnPrimary, padding: '3px 10px', fontSize: '0.78rem', background: 'var(--navy)' }} onClick={() => handleViewJudgeProfile(j.id)}>
+                    View Profile
+                  </button>
+                  {canEdit && (
+                    <button style={{ padding: '3px 10px', fontSize: '0.78rem', background: 'none', border: '1px solid var(--red)', color: 'var(--red)', borderRadius: 6, cursor: 'pointer' }} onClick={() => handleUnlinkJudge(j.id)}>
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+              <div style={{ fontSize: '0.82rem', color: 'var(--text-light)', display: 'flex', gap: 16 }}>
+                {j.jurisdiction && <span>{j.jurisdiction}</span>}
+                {j.county && <span>{j.county} County</span>}
+                {j.state && <span>{j.state}</span>}
+              </div>
+            </div>
+          ))
+        )}
+
+        {/* Judge Profile Panel */}
+        {judgeProfileLoading && <p style={{ fontSize: '0.85rem', color: 'var(--text-light)' }}>Loading profile...</p>}
+        {judgeProfile && !judgeProfileLoading && (
+          <div style={{ background: '#F0FFF4', borderRadius: 8, padding: 16, marginTop: 10, border: '1px solid rgba(56,161,105,0.2)' }}>
+            <h4 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)', marginTop: 0, marginBottom: 10 }}>
+              Profile: {judgeProfile.judge?.name}
+            </h4>
+
+            {judgeProfile.behavior_summary && (
+              <p style={{ fontSize: '0.85rem', color: 'var(--text)', marginBottom: 12, lineHeight: 1.5 }}>
+                {judgeProfile.behavior_summary}
+              </p>
+            )}
+
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 12 }}>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--navy)' }}>{judgeProfile.stats?.total_cases || 0}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Cases</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--green)' }}>{judgeProfile.stats?.settled || 0}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Settled</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--blue)' }}>{judgeProfile.stats?.avg_settlement ? '$' + Number(judgeProfile.stats.avg_settlement).toLocaleString() : 'N/A'}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Avg Settlement</div>
+              </div>
+              <div style={{ textAlign: 'center' }}>
+                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--text)' }}>{judgeProfile.stats?.avg_duration_days ? judgeProfile.stats.avg_duration_days + 'd' : 'N/A'}</div>
+                <div style={{ fontSize: '0.75rem', color: 'var(--text-light)' }}>Avg Duration</div>
+              </div>
+            </div>
+
+            {judgeProfile.notes && (
+              <div style={{ marginBottom: 10 }}>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Notes</div>
+                <div style={{ fontSize: '0.82rem', color: 'var(--text-light)' }}>{judgeProfile.notes}</div>
+              </div>
+            )}
+
+            {judgeProfile.cases && judgeProfile.cases.length > 0 && (
+              <div>
+                <div style={{ fontSize: '0.78rem', fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>Case History</div>
+                {judgeProfile.cases.slice(0, 5).map((c, i) => (
+                  <div key={i} style={{ fontSize: '0.82rem', color: 'var(--text-light)', padding: '3px 0' }}>
+                    {c.case_number} — {c.client_name} ({c.incident_type}) — {c.outcome || c.status}
+                    {c.settlement_amount ? ` — $${Number(c.settlement_amount).toLocaleString()}` : ''}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <button style={{ marginTop: 8, fontSize: '0.78rem', background: 'none', border: 'none', color: 'var(--green)', cursor: 'pointer', padding: 0 }} onClick={() => setJudgeProfile(null)}>
+              Close Profile
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Close Case Modal */}
       {showCloseModal && (

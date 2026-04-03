@@ -51,6 +51,9 @@ import workQueueRoutes from './routes/work-queue.js';
 import discoveryWorkspaceRoutes from './routes/discovery-workspace.js';
 import firmBrainRoutes from './routes/firm-brain.js';
 import recordsFollowupRoutes from './routes/records-followup.js';
+import opposingCounselRoutes from './routes/opposing-counsel.js';
+import judgeProfileRoutes from './routes/judge-profiles.js';
+import firmIntelligenceRoutes from './routes/firm-intelligence.js';
 
 const fastify = Fastify({ logger: true });
 
@@ -88,6 +91,9 @@ await fastify.register(workQueueRoutes, { prefix: '/api/work-queue' });
 await fastify.register(discoveryWorkspaceRoutes, { prefix: '/api/discovery-workspace' });
 await fastify.register(firmBrainRoutes, { prefix: '/api/firm-brain' });
 await fastify.register(recordsFollowupRoutes, { prefix: '/api/records-followup' });
+await fastify.register(opposingCounselRoutes, { prefix: '/api/opposing-counsel' });
+await fastify.register(judgeProfileRoutes, { prefix: '/api/judges' });
+await fastify.register(firmIntelligenceRoutes, { prefix: '/api/firm-intelligence' });
 
 try {
   await fastify.listen({ port: parseInt(process.env.PORT || '3001'), host: '0.0.0.0' });

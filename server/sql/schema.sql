@@ -525,8 +525,8 @@ CREATE TABLE IF NOT EXISTS firm_documents (
   case_id UUID REFERENCES cases(id) ON DELETE SET NULL,
   uploaded_by UUID REFERENCES users(id),
   ai_summary TEXT,
-  extracted_issues TEXT,
-  key_clauses TEXT,
+  ai_extracted_issues TEXT,
+  ai_key_clauses TEXT,
   created_at TIMESTAMPTZ DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_firm_documents_case ON firm_documents(case_id);
@@ -560,3 +560,8 @@ ALTER TABLE discovery_gaps ADD COLUMN IF NOT EXISTS ai_reasoning TEXT;
 
 -- A4: Gap actions
 ALTER TABLE discovery_gaps ADD COLUMN IF NOT EXISTS gap_action VARCHAR(50) CHECK (gap_action IN ('confirmed','objection_applied','dismissed'));
+
+-- B1: Expand document type constraint
+ALTER TABLE firm_documents DROP CONSTRAINT IF EXISTS firm_documents_document_type_check;
+ALTER TABLE firm_documents ADD CONSTRAINT firm_documents_document_type_check
+  CHECK (document_type IN ('brief','contract','motion','pleading','settlement_agreement','demand_letter','deposition','expert_report','correspondence','other'));
