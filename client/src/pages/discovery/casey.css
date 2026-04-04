@@ -1,0 +1,177 @@
+/* Casey's Discovery Dashboard — exact CSS from mockup, scoped under .casey */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&family=Fraunces:wght@600;700&display=swap');
+
+.casey {
+  --bg:#f6f5f2;--surface:#fff;--surface-2:#f0efe9;--border:#e4e2da;--border-strong:#ccc9be;
+  --text:#1a1916;--text-2:#6b6860;--text-3:#9e9b92;
+  --accent:#2563eb;--accent-light:#eff4ff;--accent-mid:#bfdbfe;
+  --red:#dc2626;--red-light:#fef2f2;--red-mid:#fecaca;
+  --amber:#d97706;--amber-light:#fffbeb;--amber-mid:#fde68a;
+  --green:#16a34a;--green-light:#f0fdf4;--green-mid:#bbf7d0;
+  --purple:#7c3aed;--purple-light:#f5f3ff;--purple-mid:#ddd6fe;
+  --radius:10px;--shadow:0 1px 3px rgba(0,0,0,.06),0 1px 2px rgba(0,0,0,.04);
+  --shadow-md:0 4px 12px rgba(0,0,0,.08),0 2px 4px rgba(0,0,0,.04);
+  font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.5;
+}
+.casey *{box-sizing:border-box}
+.casey .c-app{display:flex;min-height:100vh}
+
+/* Sidebar */
+.casey .sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;position:fixed;top:0;left:0;bottom:0;z-index:10;overflow-y:auto}
+.casey .sidebar-logo{padding:20px 18px 16px;border-bottom:1px solid var(--border)}
+.casey .logo-word{font-family:'Fraunces',serif;font-size:18px;font-weight:700;letter-spacing:-.3px}
+.casey .logo-sub{font-size:10px;color:var(--text-3);font-weight:500;letter-spacing:.08em;text-transform:uppercase;margin-top:1px}
+.casey .sidebar-case{padding:12px 18px;background:var(--surface-2);border-bottom:1px solid var(--border);font-size:11px}
+.casey .sidebar-case-label{color:var(--text-3);font-weight:500;text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px}
+.casey .sidebar-case-name{font-weight:600;font-size:12px}
+.casey .sidebar-case-num{color:var(--text-2);margin-top:1px;font-family:'DM Mono',monospace;font-size:10px}
+.casey .sidebar-nav{flex:1;padding:10px}
+.casey .nav-section-label{font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;color:var(--text-3);padding:8px 8px 4px}
+.casey .nav-item{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;cursor:pointer;font-size:13px;font-weight:400;color:var(--text-2);transition:all .15s;margin-bottom:1px;text-decoration:none}
+.casey .nav-item:hover{background:var(--surface-2);color:var(--text)}
+.casey .nav-item.active{background:var(--accent-light);color:var(--accent);font-weight:500}
+.casey .nav-item .nav-icon{font-size:14px;width:18px;text-align:center}
+.casey .nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:600;padding:1px 6px;border-radius:10px;font-family:'DM Mono',monospace}
+.casey .nav-badge.amber{background:var(--amber)}
+.casey .nav-badge.green{background:var(--green)}
+
+/* Case selector */
+.casey .case-select{width:100%;padding:6px 10px;border:1px solid var(--border);border-radius:6px;font-size:11px;font-family:'DM Sans',sans-serif;color:var(--text);background:var(--surface);outline:none;cursor:pointer;margin-top:8px}
+
+/* Main */
+.casey .main{margin-left:220px;flex:1;display:flex;flex-direction:column}
+.casey .topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:5}
+.casey .topbar-title{font-family:'Fraunces',serif;font-size:20px;font-weight:600;letter-spacing:-.3px}
+.casey .topbar-meta{font-size:12px;color:var(--text-3);margin-top:1px}
+.casey .topbar-actions{display:flex;gap:8px;align-items:center}
+.casey .content{padding:24px 28px}
+
+/* Buttons */
+.casey .btn{padding:7px 14px;border-radius:7px;font-size:13px;font-weight:500;font-family:'DM Sans',sans-serif;cursor:pointer;border:none;transition:all .15s;display:inline-flex;align-items:center;gap:6px}
+.casey .btn-primary{background:var(--accent);color:#fff}
+.casey .btn-primary:hover{background:#1d4ed8}
+.casey .btn-ghost{background:transparent;color:var(--text-2);border:1px solid var(--border)}
+.casey .btn-ghost:hover{background:var(--surface-2);color:var(--text)}
+.casey .btn-sm{padding:5px 10px;font-size:12px}
+.casey .btn-red{background:var(--red);color:#fff}
+.casey .btn-red:hover{background:#b91c1c}
+
+/* Tabs */
+.casey .tab-bar{display:flex;gap:2px;background:var(--surface-2);border-radius:9px;padding:3px;margin-bottom:24px;flex-wrap:wrap}
+.casey .tab{padding:7px 14px;border-radius:7px;font-size:12px;font-weight:500;cursor:pointer;color:var(--text-2);transition:all .15s;display:flex;align-items:center;gap:5px;white-space:nowrap;border:none;background:transparent;font-family:'DM Sans',sans-serif}
+.casey .tab.active{background:var(--surface);color:var(--text);box-shadow:var(--shadow)}
+.casey .tab-count{background:var(--red);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:8px;font-family:'DM Mono',monospace}
+.casey .tab-count.amber{background:var(--amber)}
+.casey .tab-count.blue{background:var(--accent)}
+.casey .tab-count.purple{background:var(--purple)}
+
+/* Cards */
+.casey .card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow)}
+.casey .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.casey .card-title{font-size:13px;font-weight:600}
+
+/* Summary */
+.casey .summary-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
+.casey .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px 18px;box-shadow:var(--shadow)}
+.casey .stat-label{font-size:11px;font-weight:500;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+.casey .stat-value{font-family:'Fraunces',serif;font-size:28px;font-weight:600;line-height:1;margin-bottom:4px}
+.casey .stat-sub{font-size:11px;color:var(--text-3)}
+.casey .stat-card.red{border-left:3px solid var(--red)}
+.casey .stat-card.amber{border-left:3px solid var(--amber)}
+.casey .stat-card.green{border-left:3px solid var(--green)}
+.casey .stat-card.blue{border-left:3px solid var(--accent)}
+
+/* Gap items */
+.casey .gap-item{border:1px solid var(--border);border-radius:8px;margin-bottom:8px;overflow:hidden;transition:all .2s}
+.casey .gap-item:hover{border-color:var(--border-strong)}
+.casey .gap-item.defendant-item{border-left:3px solid var(--red)}
+.casey .gap-header{display:flex;align-items:center;gap:12px;padding:12px 16px;cursor:pointer;background:var(--surface)}
+.casey .gap-badge{font-size:10px;font-weight:600;padding:3px 8px;border-radius:5px;text-transform:uppercase;letter-spacing:.04em;white-space:nowrap}
+.casey .gap-badge.missing{background:var(--red-light);color:var(--red)}
+.casey .gap-badge.insufficient{background:var(--amber-light);color:var(--amber)}
+.casey .gap-badge.evasive{background:var(--purple-light);color:var(--purple)}
+.casey .gap-badge.objection{background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.casey .gap-question{flex:1;font-size:13px;font-weight:500}
+.casey .gap-interrogatory{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-3)}
+.casey .gap-chevron{font-size:12px;color:var(--text-3);transition:transform .2s}
+.casey .gap-item.open .gap-chevron{transform:rotate(180deg)}
+.casey .gap-body{padding:0 16px 14px;background:var(--surface);border-top:1px solid var(--border)}
+.casey .gap-ai-note{background:var(--surface-2);border-radius:6px;padding:10px 12px;font-size:12px;color:var(--text-2);margin:10px 0;border-left:2px solid var(--border-strong)}
+.casey .gap-ai-label{font-size:10px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;margin-bottom:3px;margin-top:12px}
+.casey .gap-actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.casey .gap-action-btn{font-size:11px;font-weight:500;padding:5px 12px;border-radius:6px;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-family:'DM Sans',sans-serif;transition:all .15s}
+.casey .gap-action-btn:hover{background:var(--surface-2)}
+.casey .gap-action-btn.confirm{border-color:var(--green);color:var(--green);background:var(--green-light)}
+.casey .gap-action-btn.confirm:hover{background:var(--green-mid)}
+.casey .gap-action-btn.dismiss{border-color:var(--red);color:var(--red);background:var(--red-light)}
+.casey .gap-action-btn.compel{border-color:var(--purple);color:var(--purple);background:var(--purple-light)}
+.casey .gap-status-confirmed{font-size:11px;font-weight:600;color:var(--green);background:var(--green-light);padding:4px 10px;border-radius:5px;border:1px solid var(--green-mid)}
+.casey .gap-status-dismissed{font-size:11px;font-weight:600;color:var(--text-3);background:var(--surface-2);padding:4px 10px;border-radius:5px;border:1px solid var(--border)}
+.casey .gap-status-compel{font-size:11px;font-weight:600;color:var(--purple);background:var(--purple-light);padding:4px 10px;border-radius:5px;border:1px solid var(--purple-mid)}
+
+/* Source tag */
+.casey .source-tag{font-size:10px;font-weight:600;padding:2px 7px;border-radius:4px;text-transform:uppercase;letter-spacing:.04em}
+.casey .source-tag.plaintiff{background:var(--accent-light);color:var(--accent)}
+.casey .source-tag.defendant{background:var(--red-light);color:var(--red)}
+
+/* Supp table */
+.casey .supp-table{width:100%;border-collapse:collapse}
+.casey .supp-table th{font-size:11px;font-weight:600;color:var(--text-3);text-transform:uppercase;letter-spacing:.06em;padding:8px 12px;text-align:left;border-bottom:1px solid var(--border)}
+.casey .supp-table td{padding:11px 12px;font-size:13px;border-bottom:1px solid var(--border);vertical-align:middle}
+.casey .supp-table tr:last-child td{border-bottom:none}
+.casey .supp-table tr:hover td{background:var(--surface-2)}
+.casey .status-pill{font-size:11px;font-weight:600;padding:3px 9px;border-radius:20px;display:inline-block}
+.casey .status-pill.pending{background:var(--amber-light);color:var(--amber)}
+.casey .status-pill.received{background:var(--green-light);color:var(--green)}
+.casey .status-pill.overdue{background:var(--red-light);color:var(--red)}
+.casey .status-pill.supplemented{background:var(--accent-light);color:var(--accent)}
+.casey .status-pill.closed{background:var(--surface-2);color:var(--text-3)}
+.casey .mono{font-family:'DM Mono',monospace;font-size:11px;color:var(--text-2)}
+
+/* Exhibit grid */
+.casey .exhibit-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px}
+.casey .exhibit-folder{border:1px solid var(--border);border-radius:8px;padding:14px 16px;cursor:pointer;transition:all .15s;background:var(--surface);position:relative}
+.casey .exhibit-folder:hover{border-color:var(--accent-mid);background:var(--accent-light)}
+.casey .exhibit-folder-icon{font-size:24px;margin-bottom:8px}
+.casey .exhibit-folder-name{font-size:13px;font-weight:600}
+.casey .exhibit-folder-meta{font-size:11px;color:var(--text-3);margin-top:3px}
+.casey .exhibit-folder-badge{position:absolute;top:10px;right:10px;font-size:10px;font-weight:600;padding:2px 7px;border-radius:10px;background:var(--accent-light);color:var(--accent);font-family:'DM Mono',monospace}
+
+/* Deficiency */
+.casey .deficiency-item{border:1px solid var(--border);border-radius:8px;margin-bottom:10px;background:var(--surface);overflow:hidden}
+.casey .deficiency-header{padding:13px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--border);background:var(--surface-2);justify-content:space-between}
+.casey .deficiency-title{font-weight:600;font-size:13px;flex:1}
+.casey .deficiency-items{padding:12px 16px}
+.casey .def-row{display:flex;align-items:center;gap:12px;padding:7px 0;border-bottom:1px solid var(--border);font-size:12px}
+.casey .def-row:last-child{border-bottom:none}
+.casey .def-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.casey .def-dot.red{background:var(--red)}
+.casey .def-dot.amber{background:var(--amber)}
+.casey .def-dot.green{background:var(--green)}
+.casey .def-label{flex:1}
+.casey .def-status{font-size:11px;color:var(--text-3)}
+
+/* Upload */
+.casey .upload-zone{border:2px dashed var(--border-strong);border-radius:10px;padding:28px;text-align:center;cursor:pointer;transition:all .2s;background:var(--surface);margin-bottom:12px}
+.casey .upload-zone:hover{border-color:var(--accent);background:var(--accent-light)}
+.casey .upload-icon{font-size:28px;margin-bottom:8px}
+.casey .upload-title{font-size:13px;font-weight:600;margin-bottom:3px}
+.casey .upload-sub{font-size:12px;color:var(--text-3)}
+
+/* Filters */
+.casey .filters-row{display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.casey .filter-btn{padding:5px 12px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);background:var(--surface);color:var(--text-2);font-family:'DM Sans',sans-serif;transition:all .15s}
+.casey .filter-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.casey .filter-btn:hover:not(.active){background:var(--surface-2)}
+.casey .section-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.casey .section-title{font-size:13px;font-weight:600;display:flex;align-items:center;gap:8px}
+.casey .section-count{font-size:11px;font-weight:500;color:var(--text-3);background:var(--surface-2);padding:2px 8px;border-radius:10px;font-family:'DM Mono',monospace}
+
+/* Toast */
+.casey .toast{position:fixed;bottom:24px;right:24px;background:var(--text);color:#fff;padding:12px 18px;border-radius:9px;font-size:13px;font-weight:500;box-shadow:var(--shadow-md);display:flex;align-items:center;gap:8px;z-index:100;transition:all .3s ease}
+
+/* Empty state */
+.casey .empty-state{text-align:center;padding:40px 20px;color:var(--text-3);font-size:13px}
+
+.casey .spinner{width:16px;height:16px;border:2px solid var(--accent-mid);border-top-color:var(--accent);border-radius:50%;animation:casey-spin .7s linear infinite;display:inline-block;vertical-align:middle}
+@keyframes casey-spin{to{transform:rotate(360deg)}}

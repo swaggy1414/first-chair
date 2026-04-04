@@ -6,7 +6,7 @@ export default async function knowledgeRoutes(fastify, _opts) {
   fastify.addHook('preHandler', authenticate);
 
   // GET /api/knowledge — list all, support ?incident_type= ?outcome= ?search=
-  fastify.get('/', { preHandler: [authorize('admin', 'supervisor')] }, async (request, reply) => {
+  fastify.get('/', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
       const { incident_type, outcome, search } = request.query;
       let query = `
@@ -31,7 +31,7 @@ export default async function knowledgeRoutes(fastify, _opts) {
   });
 
   // GET /api/knowledge/stats — aggregate stats
-  fastify.get('/stats', { preHandler: [authorize('admin', 'supervisor')] }, async (request, reply) => {
+  fastify.get('/stats', { preHandler: [authorize('admin', 'supervisor', 'paralegal', 'attorney')] }, async (request, reply) => {
     try {
       const [byType, byOutcome, avgDuration, topLessons] = await Promise.all([
         pool.query(`SELECT incident_type, COUNT(*) as count, ROUND(AVG(settlement_amount),2) as avg_settlement, ROUND(AVG(duration_days)) as avg_days FROM case_knowledge WHERE incident_type IS NOT NULL GROUP BY incident_type ORDER BY count DESC`),

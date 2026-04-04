@@ -1,162 +1,522 @@
-import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useState, useEffect, useCallback, useRef } from 'react';
+import { NavLink, useNavigate } from 'react-router-dom';
 import { useActiveCase } from '../../context/ActiveCaseContext';
+import { useAuth } from '../../context/AuthContext';
 import { api, API_URL } from '../../api/client';
+import './casey.css';
 
-const statBox = (label, value, color) => ({
-  textAlign: 'center', padding: '14px 10px', borderRadius: 8,
-  background: color === 'red' ? '#FFF5F5' : color === 'green' ? '#F0FFF4' : color === 'blue' ? '#EBF5FF' : '#F7FAFC',
-  flex: 1, minWidth: 100,
-});
-const statNum = (color) => ({ fontSize: '1.4rem', fontWeight: 700, color: `var(--${color})` });
-const statLabel = { fontSize: '0.72rem', color: 'var(--text-light)', fontWeight: 600, textTransform: 'uppercase' };
+function fmtDate(d) {
+  if (!d) return '—';
+  return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+const TABS = [
+  { key: 'gaps',        label: '🔍 Gap Analysis' },
+  { key: 'defgaps',     label: '⚔️ Def. Deficiencies' },
+  { key: 'supplements', label: '📊 Supplements' },
+  { key: 'exhibits',    label: '📁 Exhibits' },
+  { key: 'email',       label: '✉️ Client Email' },
+  { key: 'deficiency',  label: '⚠️ Deficiency' },
+  { key: 'motion',      label: '⚖️ Motion to Compel' },
+  { key: 'privilege',   label: '🔒 Privilege Log' },
+  { key: 'depo',        label: '🎙️ Depo Prep' },
+  { key: 'subpoena',    label: '📜 Subpoena' },
+];
 
 export default function DiscoveryDashboard() {
-  const { activeCaseId, activeCase, refreshCase } = useActiveCase();
+  const { user } = useAuth();
+  const { cases, activeCaseId, activeCase, selectCase, refreshCase } = useActiveCase();
   const navigate = useNavigate();
-  const [readiness, setReadiness] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [uploadSide, setUploadSide] = useState('defendant');
-  const [uploadMsg, setUploadMsg] = useState('');
-  const [recentGaps, setRecentGaps] = useState([]);
+  const fileRef = useRef(null);
 
-  useEffect(() => {
+  const [tab, setTab] = useState('gaps');
+  const [allGaps, setAllGaps] = useState([]);
+  const [missingGaps, setMissingGaps] = useState([]);
+  const [insuffGaps, setInsuffGaps] = useState([]);
+  const [confirmedGaps, setConfirmedGaps] = useState([]);
+  const [supplements, setSupplements] = useState([]);
+  const [exhibits, setExhibits] = useState([]);
+  const [letters, setLetters] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [gapFilter, setGapFilter] = useState('all');
+  const [openItems, setOpenItems] = useState({});
+  const [uploading, setUploading] = useState(false);
+  const [toast, setToast] = useState('');
+
+  const loadData = useCallback(() => {
     if (!activeCaseId) return;
-    api.get(`/discovery-workspace/${activeCaseId}/readiness`).then(setReadiness).catch(() => {});
-    api.get(`/discovery-workspace/${activeCaseId}/gaps`).then(d => setRecentGaps((d.gaps || []).slice(0, 5))).catch(() => {});
+    setLoading(true);
+    Promise.all([
+      api.get(`/discovery-workspace/${activeCaseId}/gaps`).catch(() => ({ gaps: [], missing: [], insufficient: [], confirmed: [] })),
+      api.get(`/supplements/${activeCaseId}`).catch(() => []),
+      api.get(`/exhibits/case/${activeCaseId}`).catch(() => []),
+      api.get(`/deficiency-letters/${activeCaseId}`).catch(() => []),
+    ]).then(([gapData, suppData, exhData, letterData]) => {
+      setAllGaps(gapData.gaps || []);
+      setMissingGaps(gapData.missing || []);
+      setInsuffGaps(gapData.insufficient || []);
+      setConfirmedGaps(gapData.confirmed || []);
+      setSupplements(Array.isArray(suppData) ? suppData : []);
+      setExhibits(Array.isArray(exhData) ? exhData : []);
+      setLetters(Array.isArray(letterData) ? letterData : []);
+    }).finally(() => setLoading(false));
   }, [activeCaseId]);
 
-  const handleUpload = async (e) => {
-    const file = e.target.files?.[0];
+  useEffect(() => { loadData(); }, [loadData]);
+
+  const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(''), 3000); };
+
+  const handleGapAction = async (gapId, action) => {
+    const body = action === 'confirmed' ? { gap_action: 'confirmed' }
+      : action === 'objection' ? { gap_action: 'objection_applied' }
+      : { gap_action: 'dismissed', status: 'waived' };
+    await api.patch(`/discovery/gaps/${gapId}`, body).catch(() => {});
+    showToast(action === 'confirmed' ? '✓ Gap confirmed' : action === 'objection' ? 'Objection applied' : 'Gap dismissed');
+    loadData();
+    refreshCase();
+  };
+
+  const handleUpload = async () => {
+    const file = fileRef.current?.files?.[0];
     if (!file || !activeCaseId) return;
     setUploading(true);
-    setUploadMsg('');
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('response_party', uploadSide);
     try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('response_party', 'plaintiff');
       const token = localStorage.getItem('token');
       const res = await fetch(`${API_URL}/discovery/upload/${activeCaseId}`, {
         method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: formData,
       });
       if (!res.ok) throw new Error('Upload failed');
       const data = await res.json();
-      setUploadMsg(`Uploaded — analyzing...`);
-      await api.post(`/discovery/analyze/${data.id}`, {});
-      setUploadMsg('Analysis complete');
-      refreshCase();
-      api.get(`/discovery-workspace/${activeCaseId}/gaps`).then(d => setRecentGaps((d.gaps || []).slice(0, 5))).catch(() => {});
-      api.get(`/discovery-workspace/${activeCaseId}/readiness`).then(setReadiness).catch(() => {});
-      setTimeout(() => setUploadMsg(''), 3000);
-    } catch (err) {
-      setUploadMsg(err.message);
-    } finally {
-      setUploading(false);
-      e.target.value = '';
-    }
+      if (data.id) await api.post(`/discovery/analyze/${data.id}`);
+      showToast('✓ Analysis complete');
+      loadData(); refreshCase();
+      fileRef.current.value = '';
+    } catch (err) { showToast('Upload failed: ' + err.message); }
+    finally { setUploading(false); }
   };
 
-  if (!activeCase) return <p style={{ color: 'var(--text-light)', padding: 20 }}>Select a case from the sidebar</p>;
+  const toggleItem = (id) => setOpenItems(p => ({ ...p, [id]: !p[id] }));
 
-  const c = activeCase;
+  // Computed from REAL API data
+  const gapCount = allGaps.length;
+  const openGapCount = allGaps.filter(g => g.status === 'open').length;
+  const suppCount = supplements.filter(s => s.status !== 'closed').length;
+  const overdueCount = supplements.filter(s => s.is_overdue).length;
+  const exhCount = exhibits.length;
+  const letterCount = letters.filter(l => l.status === 'draft').length;
+
+  const filteredGaps = gapFilter === 'all' ? allGaps
+    : gapFilter === 'missing' ? missingGaps
+    : gapFilter === 'insufficient' ? insuffGaps
+    : confirmedGaps;
+
+  function badgeClass(g) {
+    if (g.gap_type === 'no_answer' || g.gap_type === 'missing_document') return 'missing';
+    if (g.gap_type === 'evasive_answer') return 'evasive';
+    if (g.gap_type === 'objection_only') return 'objection';
+    return 'insufficient';
+  }
+  function badgeLabel(g) {
+    if (g.gap_type === 'no_answer' || g.gap_type === 'missing_document') return 'Missing';
+    if (g.gap_type === 'evasive_answer') return 'Evasive';
+    if (g.gap_type === 'objection_only') return 'Bad Objection';
+    return 'Insufficient';
+  }
+  function reqLabel(g) {
+    if (!g.request_type) return '';
+    const p = g.request_type === 'interrogatory' ? 'Int' : g.request_type === 'rfp' ? 'RFP' : g.request_type === 'rfa' ? 'RFA' : g.request_type.toUpperCase();
+    return `${p}. No. ${g.request_number || '?'}`;
+  }
+
+  const c = activeCase || {};
+  const caseName = c.plaintiff_name || c.client_name || '';
+  const caseNumber = c.case_number || '';
+
+  function renderGapItem(g) {
+    const isOpen = openItems[g.id];
+    return (
+      <div key={g.id} className={`gap-item${isOpen ? ' open' : ''}`}>
+        <div className="gap-header" onClick={() => toggleItem(g.id)}>
+          <span className={`gap-badge ${badgeClass(g)}`}>{badgeLabel(g)}</span>
+          <span className="gap-interrogatory">{reqLabel(g)}</span>
+          <span className="gap-question">{g.gap_description}</span>
+          <span className="gap-chevron">▼</span>
+        </div>
+        {isOpen && (
+          <div className="gap-body">
+            {g.original_request_text && (<>
+              <div className="gap-ai-label">Original Request</div>
+              <div className="gap-ai-note">{g.original_request_text}</div>
+            </>)}
+            {g.response_received && (<>
+              <div className="gap-ai-label">Response Received</div>
+              <div className="gap-ai-note">{g.response_received}</div>
+            </>)}
+            {g.ai_reasoning && (<>
+              <div className="gap-ai-label">AI Analysis</div>
+              <div className="gap-ai-note">{g.ai_reasoning}</div>
+            </>)}
+            <div className="gap-actions">
+              {g.gap_action === 'confirmed' ? (
+                <span className="gap-status-confirmed">✓ Confirmed</span>
+              ) : g.gap_action === 'dismissed' || g.status === 'waived' ? (
+                <span className="gap-status-dismissed">Dismissed</span>
+              ) : g.gap_action === 'objection_applied' ? (
+                <span className="gap-status-compel">⚖️ Flagged for MTC</span>
+              ) : (<>
+                <button className="gap-action-btn confirm" onClick={() => handleGapAction(g.id, 'confirmed')}>✓ Confirm Gap</button>
+                <button className="gap-action-btn" onClick={() => handleGapAction(g.id, 'objection')}>Apply Objection</button>
+                <button className="gap-action-btn dismiss" onClick={() => handleGapAction(g.id, 'dismissed')}>✗ Dismiss</button>
+              </>)}
+            </div>
+          </div>
+        )}
+      </div>
+    );
+  }
 
   return (
-    <div>
-      <h2 style={{ fontSize: '1.2rem', fontWeight: 700, color: 'var(--navy)', marginBottom: 4 }}>
-        Discovery Dashboard
-      </h2>
-      <p style={{ fontSize: '0.85rem', color: 'var(--text-light)', marginBottom: 20 }}>
-        {c.case_number} — {c.client_name} — {c.incident_type}
-      </p>
+    <div className="casey">
+      <div className="c-app">
 
-      {/* Summary Bar */}
-      <div style={{ display: 'flex', gap: 12, marginBottom: 24 }}>
-        <div style={statBox('Open Gaps', c.open_gap_count, 'red')}>
-          <div style={statNum('red')}>{c.open_gap_count}</div>
-          <div style={statLabel}>Open Gaps</div>
-        </div>
-        <div style={statBox('Pending Supplements', c.pending_supplement_count, 'blue')}>
-          <div style={statNum('blue')}>{c.pending_supplement_count}</div>
-          <div style={statLabel}>Supplements</div>
-        </div>
-        <div style={statBox('Resolved', c.resolved_gap_count, 'green')}>
-          <div style={statNum('green')}>{c.resolved_gap_count}</div>
-          <div style={statLabel}>Resolved</div>
-        </div>
-        <div style={statBox('Exhibits', c.exhibit_count, 'gray')}>
-          <div style={statNum('text')}>{c.exhibit_count}</div>
-          <div style={statLabel}>Exhibits</div>
-        </div>
-      </div>
-
-      {/* Readiness */}
-      {readiness && (
-        <div style={{ marginBottom: 24, padding: '12px 16px', borderRadius: 8, background: readiness.ready ? '#C6F6D5' : '#FFF5F5', border: `1px solid ${readiness.ready ? '#9AE6B4' : '#FED7D7'}` }}>
-          <span style={{ fontWeight: 700, color: readiness.ready ? 'var(--green)' : 'var(--red)', fontSize: '0.9rem' }}>
-            {readiness.ready ? 'Ready to File' : `Not Ready — ${readiness.blocker_count} blocker${readiness.blocker_count !== 1 ? 's' : ''}`}
-          </span>
-          {!readiness.ready && readiness.blockers?.length > 0 && (
-            <ul style={{ margin: '6px 0 0', paddingLeft: 18, fontSize: '0.8rem', color: 'var(--text)' }}>
-              {readiness.blockers.slice(0, 4).map((b, i) => <li key={i}>{b.message}</li>)}
-              {readiness.blockers.length > 4 && <li>...and {readiness.blockers.length - 4} more</li>}
-            </ul>
-          )}
-        </div>
-      )}
-
-      {/* Upload Zone */}
-      <div style={{ background: 'var(--light-gray)', borderRadius: 8, padding: 20, marginBottom: 24, border: '2px dashed var(--border)' }}>
-        <div style={{ fontWeight: 600, fontSize: '0.9rem', color: 'var(--navy)', marginBottom: 10 }}>Upload Discovery Response</div>
-        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
-          <select style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid var(--border)', fontSize: '0.85rem' }} value={uploadSide} onChange={(e) => setUploadSide(e.target.value)}>
-            <option value="defendant">Defendant Response</option>
-            <option value="plaintiff">Plaintiff Response</option>
-          </select>
-          <input type="file" accept=".pdf,.docx,.txt,.doc" onChange={handleUpload} disabled={uploading} style={{ fontSize: '0.85rem' }} />
-          {uploadMsg && <span style={{ fontSize: '0.82rem', color: uploadMsg.includes('fail') ? 'var(--red)' : 'var(--green)' }}>{uploadMsg}</span>}
-        </div>
-      </div>
-
-      {/* Quick Actions */}
-      <div style={{ display: 'flex', gap: 10, marginBottom: 24 }}>
-        <button onClick={() => navigate('/discovery/gaps')} style={{ padding: '8px 16px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, background: 'var(--blue)', color: '#fff', border: 'none', cursor: 'pointer' }}>
-          View All Gaps ({c.open_gap_count})
-        </button>
-        <button onClick={() => navigate('/discovery/supplements')} style={{ padding: '8px 16px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, background: 'var(--navy)', color: '#fff', border: 'none', cursor: 'pointer' }}>
-          Supplements ({c.pending_supplement_count})
-        </button>
-        <button onClick={() => navigate('/discovery/deficiency-letters')} style={{ padding: '8px 16px', borderRadius: 6, fontSize: '0.85rem', fontWeight: 600, background: '#DD6B20', color: '#fff', border: 'none', cursor: 'pointer' }}>
-          Deficiency Letters
-        </button>
-      </div>
-
-      {/* Recent Gaps Preview */}
-      {recentGaps.length > 0 && (
-        <div>
-          <h3 style={{ fontSize: '0.95rem', fontWeight: 600, color: 'var(--navy)', marginBottom: 10 }}>Recent Gaps</h3>
-          {recentGaps.map((g) => (
-            <div key={g.id} style={{ padding: '10px 14px', borderRadius: 6, background: 'var(--white)', border: '1px solid var(--border)', marginBottom: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <span style={{ fontSize: '0.8rem', fontWeight: 600, color: g.priority === 'high' ? 'var(--red)' : 'var(--blue)' }}>
-                  {g.request_type} #{g.request_number}
-                </span>
-                <span style={{ fontSize: '0.8rem', color: 'var(--text-light)', marginLeft: 8 }}>
-                  {g.gap_type?.replace(/_/g, ' ')}
-                </span>
-                {g.gap_description && <div style={{ fontSize: '0.78rem', color: 'var(--text)', marginTop: 2 }}>{g.gap_description.slice(0, 100)}</div>}
-              </div>
-              <span style={{ fontSize: '0.72rem', padding: '2px 8px', borderRadius: 10, fontWeight: 600, background: g.status === 'open' ? '#FED7D7' : '#C6F6D5', color: g.status === 'open' ? 'var(--red)' : 'var(--green)' }}>
-                {g.gap_action || g.status}
-              </span>
+        {/* ══════ SIDEBAR — Casey's exact structure ══════ */}
+        <aside className="sidebar">
+          <div className="sidebar-logo">
+            <div className="logo-word">First Chair</div>
+            <div className="logo-sub">Discovery Intelligence</div>
+          </div>
+          <div className="sidebar-case">
+            <div className="sidebar-case-label">Active Case</div>
+            <div className="sidebar-case-name">{caseName || 'Select a case'}</div>
+            <div className="sidebar-case-num">{caseNumber}</div>
+            <select
+              className="case-select"
+              value={activeCaseId}
+              onChange={e => selectCase(e.target.value)}
+            >
+              {cases.map(cs => (
+                <option key={cs.id} value={cs.id}>{cs.case_number} — {cs.client_name}</option>
+              ))}
+            </select>
+          </div>
+          <nav className="sidebar-nav">
+            <div className="nav-section-label">Case</div>
+            <NavLink to={activeCaseId ? `/cases/${activeCaseId}` : '/cases'} className="nav-item">
+              <span className="nav-icon">📋</span> Case Detail
+            </NavLink>
+            <NavLink to={activeCaseId ? `/cases/${activeCaseId}?tab=deadlines` : '/cases'} className="nav-item">
+              <span className="nav-icon">📅</span> Deadlines
+            </NavLink>
+            <NavLink to="/records" className="nav-item">
+              <span className="nav-icon">📂</span> Records Tracker
+            </NavLink>
+            <div className="nav-section-label" style={{ marginTop: 8 }}>Discovery</div>
+            <div className="nav-item active">
+              <span className="nav-icon">🔍</span> Discovery Dashboard
+              {openGapCount > 0 && <span className="nav-badge">{openGapCount}</span>}
             </div>
-          ))}
-          {c.open_gap_count > 5 && (
-            <button onClick={() => navigate('/discovery/gaps')} style={{ fontSize: '0.82rem', color: 'var(--blue)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, marginTop: 4 }}>
-              View all {c.open_gap_count} gaps →
-            </button>
-          )}
+            <NavLink to="/discovery/supplements" className="nav-item">
+              <span className="nav-icon">📊</span> Supplement Tracker
+              {suppCount > 0 && <span className="nav-badge amber">{suppCount}</span>}
+            </NavLink>
+            <NavLink to="/discovery/exhibits" className="nav-item">
+              <span className="nav-icon">📁</span> Exhibit Manager
+            </NavLink>
+            <NavLink to="/discovery/deficiency-letters" className="nav-item">
+              <span className="nav-icon">⚠️</span> Deficiency Letters
+              {letterCount > 0 && <span className="nav-badge amber">{letterCount}</span>}
+            </NavLink>
+            <div className="nav-section-label" style={{ marginTop: 8 }}>Firm</div>
+            <NavLink to="/discovery-library" className="nav-item">
+              <span className="nav-icon">📚</span> Discovery Library
+            </NavLink>
+            <NavLink to="/morning-brief" className="nav-item">
+              <span className="nav-icon">🌅</span> Morning Brief
+            </NavLink>
+          </nav>
+          <div style={{ padding: '14px 18px', borderTop: '1px solid var(--border)', fontSize: 11 }}>
+            <div style={{ fontWeight: 600 }}>{user?.name}</div>
+            <div style={{ color: 'var(--text-3)', textTransform: 'capitalize', fontSize: 10 }}>{user?.role}</div>
+          </div>
+        </aside>
+
+        {/* ══════ MAIN ══════ */}
+        <div className="main">
+          <header className="topbar">
+            <div>
+              <div className="topbar-title">Discovery Intelligence Dashboard</div>
+              <div className="topbar-meta">{caseName} · {c.phase || c.status || 'Discovery'} · {caseNumber}</div>
+            </div>
+            <div className="topbar-actions">
+              <button className="btn btn-primary btn-sm" onClick={() => fileRef.current?.click()}>
+                + Upload Response
+              </button>
+              <input type="file" ref={fileRef} style={{ display: 'none' }} accept=".pdf,.docx,.txt,.doc" onChange={handleUpload} />
+            </div>
+          </header>
+
+          <div className="content">
+            {loading ? (
+              <div className="empty-state"><span className="spinner" /> Loading...</div>
+            ) : !activeCaseId ? (
+              <div className="empty-state">Select a case to begin</div>
+            ) : (<>
+
+              {/* ── Summary Bar — 4 stat cards ── */}
+              <div className="summary-bar">
+                <div className="stat-card red">
+                  <div className="stat-label">Open Gaps</div>
+                  <div className="stat-value">{gapCount}</div>
+                  <div className="stat-sub">{missingGaps.length} missing</div>
+                </div>
+                <div className="stat-card red" style={{ borderLeftColor: '#7c3aed' }}>
+                  <div className="stat-label">Defendant Deficiencies</div>
+                  <div className="stat-value">{allGaps.filter(g => g.gap_action === 'objection_applied').length}</div>
+                  <div className="stat-sub">flagged for MTC</div>
+                </div>
+                <div className="stat-card amber">
+                  <div className="stat-label">Pending Supplements</div>
+                  <div className="stat-value">{suppCount}</div>
+                  <div className="stat-sub">{overdueCount > 0 ? `${overdueCount} overdue` : 'None overdue'}</div>
+                </div>
+                <div className="stat-card blue">
+                  <div className="stat-label">Exhibits</div>
+                  <div className="stat-value">{exhCount}</div>
+                  <div className="stat-sub">{exhCount === 1 ? '1 file' : `${exhCount} files`}</div>
+                </div>
+              </div>
+
+              {/* ── Tab Bar ── */}
+              <div className="tab-bar">
+                {TABS.map(t => {
+                  let count = null;
+                  if (t.key === 'gaps') count = gapCount;
+                  if (t.key === 'supplements' && overdueCount > 0) count = overdueCount;
+                  if (t.key === 'exhibits' && exhCount > 0) count = exhCount;
+                  const countClass = t.key === 'supplements' ? 'amber' : t.key === 'exhibits' ? 'blue' : t.key === 'defgaps' ? 'purple' : '';
+                  return (
+                    <button key={t.key} className={`tab${tab === t.key ? ' active' : ''}`} onClick={() => setTab(t.key)}>
+                      {t.label}
+                      {count > 0 && <span className={`tab-count${countClass ? ' ' + countClass : ''}`}>{count}</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* ══ GAP ANALYSIS ══ */}
+              {tab === 'gaps' && (
+                <div>
+                  <div className="upload-zone" onClick={() => fileRef.current?.click()}>
+                    <div className="upload-icon">📄</div>
+                    <div className="upload-title">{uploading ? 'Analyzing…' : 'Upload Your Discovery Response'}</div>
+                    <div className="upload-sub">AI flags gaps in your own responses</div>
+                  </div>
+                  <div className="filters-row">
+                    <span style={{ fontSize: 12, color: 'var(--text-3)', fontWeight: 500 }}>Filter:</span>
+                    {[
+                      { key: 'all', label: 'All', count: allGaps.length },
+                      { key: 'missing', label: 'Missing', count: missingGaps.length },
+                      { key: 'insufficient', label: 'Insufficient', count: insuffGaps.length },
+                      { key: 'confirmed', label: 'Confirmed', count: confirmedGaps.length },
+                    ].map(f => (
+                      <button key={f.key} className={`filter-btn${gapFilter === f.key ? ' active' : ''}`} onClick={() => setGapFilter(f.key)}>
+                        {f.label} <span style={{ opacity: .6 }}>{f.count}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <div className="section-header">
+                    <div className="section-title">
+                      Response Gaps <span className="section-count">{filteredGaps.length} items</span>
+                    </div>
+                  </div>
+                  {filteredGaps.length === 0 ? (
+                    <div className="empty-state">No gaps found</div>
+                  ) : filteredGaps.map(g => renderGapItem(g))}
+                </div>
+              )}
+
+              {/* ══ DEFENDANT DEFICIENCIES ══ */}
+              {tab === 'defgaps' && (
+                <div>
+                  <div className="section-header">
+                    <div className="section-title">
+                      Defendant's Response Deficiencies <span className="section-count">{allGaps.length} total gaps</span>
+                    </div>
+                  </div>
+                  <p style={{ fontSize: 13, color: 'var(--text-2)', marginBottom: 16 }}>
+                    Upload a defendant response in the Gap Analysis tab to flag their deficiencies separately. Currently showing all gaps for this case.
+                  </p>
+                  {allGaps.length === 0 ? (
+                    <div className="empty-state">No gaps found. Upload a defendant response to analyze.</div>
+                  ) : allGaps.map(g => (
+                    <div key={g.id} className={`gap-item defendant-item${openItems[g.id] ? ' open' : ''}`}>
+                      <div className="gap-header" onClick={() => toggleItem(g.id)}>
+                        <span className={`gap-badge ${badgeClass(g)}`}>{badgeLabel(g)}</span>
+                        <span className="source-tag defendant">Gap</span>
+                        <span className="gap-interrogatory">{reqLabel(g)}</span>
+                        <span className="gap-question">{g.gap_description}</span>
+                        <span className="gap-chevron">▼</span>
+                      </div>
+                      {openItems[g.id] && (
+                        <div className="gap-body">
+                          {g.ai_reasoning && (<>
+                            <div className="gap-ai-label">AI Analysis</div>
+                            <div className="gap-ai-note">{g.ai_reasoning}</div>
+                          </>)}
+                          <div className="gap-actions">
+                            {g.gap_action === 'objection_applied' ? (
+                              <span className="gap-status-compel">⚖️ Flagged for Motion to Compel</span>
+                            ) : g.gap_action === 'confirmed' ? (
+                              <span className="gap-status-confirmed">✓ Noted</span>
+                            ) : g.gap_action === 'dismissed' ? (
+                              <span className="gap-status-dismissed">Dismissed</span>
+                            ) : (<>
+                              <button className="gap-action-btn compel" onClick={() => handleGapAction(g.id, 'objection')}>⚖️ Flag for MTC</button>
+                              <button className="gap-action-btn confirm" onClick={() => handleGapAction(g.id, 'confirmed')}>✓ Note Deficiency</button>
+                              <button className="gap-action-btn dismiss" onClick={() => handleGapAction(g.id, 'dismissed')}>✗ Dismiss</button>
+                            </>)}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ══ SUPPLEMENTS ══ */}
+              {tab === 'supplements' && (
+                <div>
+                  <div className="section-header" style={{ marginBottom: 16 }}>
+                    <div className="section-title">Supplement Obligations <span className="section-count">{supplements.length} items</span></div>
+                  </div>
+                  {supplements.length === 0 ? (
+                    <div className="empty-state">No supplement obligations yet.</div>
+                  ) : (
+                    <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+                      <table className="supp-table">
+                        <thead><tr><th>Item</th><th>Date Added</th><th>Days</th><th>Status</th></tr></thead>
+                        <tbody>
+                          {supplements.map(s => (
+                            <tr key={s.id}>
+                              <td><strong>{s.response_file_name || 'Supplement'}</strong></td>
+                              <td className="mono">{fmtDate(s.created_at)}</td>
+                              <td className="mono" style={{ color: s.is_overdue ? 'var(--red)' : undefined, fontWeight: s.is_overdue ? 600 : undefined }}>
+                                {s.days_outstanding || 0}d
+                              </td>
+                              <td>
+                                <span className={`status-pill ${s.is_overdue ? 'overdue' : s.status === 'responded' ? 'received' : s.status === 'closed' ? 'closed' : 'pending'}`}>
+                                  {s.is_overdue ? 'Overdue' : s.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ══ EXHIBITS ══ */}
+              {tab === 'exhibits' && (
+                <div>
+                  <div className="section-header" style={{ marginBottom: 16 }}>
+                    <div className="section-title">Exhibit Folders <span className="section-count">{exhibits.length} files</span></div>
+                  </div>
+                  {exhibits.length === 0 ? (
+                    <div className="empty-state">No exhibits for this case yet.</div>
+                  ) : (
+                    <div className="exhibit-grid">
+                      {exhibits.map(ex => (
+                        <div key={ex.id} className="exhibit-folder">
+                          {ex.exhibit_label && <span className="exhibit-folder-badge">{ex.exhibit_label}</span>}
+                          <div className="exhibit-folder-icon">📁</div>
+                          <div className="exhibit-folder-name">{ex.file_name || ex.exhibit_label || 'Exhibit'}</div>
+                          <div className="exhibit-folder-meta">{ex.description || ''} · {fmtDate(ex.created_at)}</div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* ══ CLIENT EMAIL ══ */}
+              {tab === 'email' && (
+                <div>
+                  <div className="section-header" style={{ marginBottom: 16 }}>
+                    <div className="section-title">Client Email Generator</div>
+                  </div>
+                  <div className="empty-state">Confirm gaps in the Gap Analysis tab, then generate a client email.</div>
+                </div>
+              )}
+
+              {/* ══ DEFICIENCY LETTERS ══ */}
+              {tab === 'deficiency' && (
+                <div>
+                  <div className="section-header" style={{ marginBottom: 16 }}>
+                    <div className="section-title">Deficiency Letters <span className="section-count">{letters.length} total</span></div>
+                  </div>
+                  {letters.length === 0 ? (
+                    <div className="empty-state">No deficiency letters yet.</div>
+                  ) : letters.map(l => (
+                    <div key={l.id} className="deficiency-item">
+                      <div className="deficiency-header">
+                        <div>
+                          <div className="deficiency-title">{l.request_type ? `${l.request_type} #${l.request_number}` : 'Deficiency Letter'}</div>
+                          <div style={{ fontSize: 12, color: 'var(--text-2)', marginTop: 2 }}>{fmtDate(l.created_at)}</div>
+                        </div>
+                        <span className={`status-pill ${l.status === 'sent' ? 'received' : l.status === 'cancelled' ? 'closed' : 'pending'}`}>{l.status}</span>
+                      </div>
+                      {l.gap_description && (
+                        <div className="deficiency-items">
+                          <div className="def-row">
+                            <div className={`def-dot ${l.status === 'sent' ? 'green' : 'amber'}`} />
+                            <div className="def-label">{l.gap_description}</div>
+                            <div className="def-status">{l.status}</div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {/* ══ MOTION TO COMPEL ══ */}
+              {tab === 'motion' && (
+                <div>
+                  <div className="section-header" style={{ marginBottom: 16 }}>
+                    <div className="section-title">Motion to Compel Generator</div>
+                  </div>
+                  <div className="empty-state">Flag defendant deficiencies for MTC in the Def. Deficiencies tab first.</div>
+                </div>
+              )}
+
+              {/* ══ PRIVILEGE LOG ══ */}
+              {tab === 'privilege' && <div className="empty-state">Privilege log — coming soon</div>}
+
+              {/* ══ DEPO PREP ══ */}
+              {tab === 'depo' && <div className="empty-state">Deposition prep — coming soon</div>}
+
+              {/* ══ SUBPOENA ══ */}
+              {tab === 'subpoena' && (
+                <div>
+                  <div className="section-header" style={{ marginBottom: 16 }}>
+                    <div className="section-title">Subpoena Generator</div>
+                    <button className="btn btn-primary btn-sm" onClick={() => navigate('/subpoena-manager')}>Open Subpoena Manager</button>
+                  </div>
+                  <div className="empty-state">Use the Subpoena Manager for full generation and tracking.</div>
+                </div>
+              )}
+
+            </>)}
+          </div>
         </div>
-      )}
+      </div>
+
+      {toast && <div className="toast" style={{ transform: 'translateY(0)', opacity: 1 }}>{toast}</div>}
     </div>
   );
 }

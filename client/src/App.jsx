@@ -1,5 +1,6 @@
 import { Routes, Route, Navigate } from 'react-router-dom';
 import ProtectedRoute from './components/ProtectedRoute';
+import DiscoveryProtectedRoute from './components/DiscoveryProtectedRoute';
 import { useAuth } from './context/AuthContext';
 import LoginPage from './pages/LoginPage';
 import MorningBrief from './pages/MorningBrief';
@@ -13,14 +14,13 @@ import Settings from './pages/Settings';
 import DiscoveryLibrary from './pages/DiscoveryLibrary';
 import KnowledgeBase from './pages/KnowledgeBase';
 import SubpoenaManager from './pages/SubpoenaManager';
-import DiscoveryWorkspace from './pages/DiscoveryWorkspace';
 import RecordsFollowup from './pages/RecordsFollowup';
 import FirmBrain from './pages/FirmBrain';
 import Integrations from './pages/Integrations';
 
-// Casey's Discovery Dashboard
-import DiscoveryLayout from './pages/discovery/DiscoveryLayout';
+// Casey's Discovery
 import DiscoveryDashboard from './pages/discovery/DiscoveryDashboard';
+import DiscoveryLayout from './pages/discovery/DiscoveryLayout';
 import GapAnalysis from './pages/discovery/GapAnalysis';
 import SupplementTracker from './pages/discovery/SupplementTracker';
 import DeficiencyLetters from './pages/discovery/DeficiencyLetters';
@@ -36,6 +36,22 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+
+      {/* Casey's Discovery — NO navy Layout */}
+      <Route element={<DiscoveryProtectedRoute />}>
+        {/* Dashboard renders its own full-page layout with sidebar */}
+        <Route path="/discovery/dashboard" element={<DiscoveryDashboard />} />
+        {/* Other discovery pages use DiscoveryLayout wrapper */}
+        <Route path="/discovery" element={<DiscoveryLayout />}>
+          <Route index element={<Navigate to="/discovery/dashboard" replace />} />
+          <Route path="gaps" element={<GapAnalysis />} />
+          <Route path="supplements" element={<SupplementTracker />} />
+          <Route path="deficiency-letters" element={<DeficiencyLetters />} />
+          <Route path="exhibits" element={<ExhibitRedirect />} />
+        </Route>
+      </Route>
+
+      {/* Main app — navy Layout */}
       <Route element={<ProtectedRoute />}>
         <Route path="/work-queue" element={<WorkQueue />} />
         <Route path="/morning-brief" element={<MorningBrief />} />
@@ -49,18 +65,7 @@ export default function App() {
         <Route path="/discovery-library" element={<DiscoveryLibrary />} />
         <Route path="/knowledge-base" element={<KnowledgeBase />} />
         <Route path="/subpoena-manager" element={<SubpoenaManager />} />
-        <Route path="/discovery-workspace" element={<DiscoveryWorkspace />} />
-
-        {/* Casey's Discovery Dashboard */}
-        <Route path="/discovery" element={<DiscoveryLayout />}>
-          <Route index element={<Navigate to="/discovery/dashboard" replace />} />
-          <Route path="dashboard" element={<DiscoveryDashboard />} />
-          <Route path="gaps" element={<GapAnalysis />} />
-          <Route path="supplements" element={<SupplementTracker />} />
-          <Route path="deficiency-letters" element={<DeficiencyLetters />} />
-          <Route path="exhibits" element={<ExhibitRedirect />} />
-        </Route>
-
+        <Route path="/discovery-workspace" element={<Navigate to="/discovery/dashboard" replace />} />
         <Route path="/firm-brain" element={<FirmBrain />} />
         <Route path="/integrations" element={<Integrations />} />
         <Route path="/settings" element={<Settings />} />

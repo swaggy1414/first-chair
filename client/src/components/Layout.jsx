@@ -1,30 +1,28 @@
 import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useActiveCase } from '../context/ActiveCaseContext';
 import { api } from '../api/client';
 
 const navItems = [
-  { to: '/work-queue', label: 'Work Queue', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
-  { separator: true, label: 'Active Case' },
-  { to: '/discovery/dashboard', label: 'Discovery Dashboard', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
-  { to: '/discovery/gaps', label: 'Gap Analysis', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
-  { to: '/discovery/supplements', label: 'Supplement Tracker', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
-  { to: '/discovery/deficiency-letters', label: 'Deficiency Letters', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
-  { to: '/discovery/exhibits', label: 'Exhibit Manager', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { separator: true, label: 'Active Case', showActiveCase: true },
+  { to: '/discovery/dashboard', icon: '📋', label: 'Discovery Dashboard', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/discovery/gaps', icon: '🔍', label: 'Gap Analysis', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/discovery/supplements', icon: '📊', label: 'Supplement Tracker', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/discovery/deficiency-letters', icon: '⚠️', label: 'Deficiency Letters', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/discovery/exhibits', icon: '📁', label: 'Exhibit Manager', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
   { separator: true, label: 'Firm' },
-  { to: '/discovery-library', label: 'Discovery Library', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
-  { to: '/firm-brain', label: 'Firm Brain', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
-  { to: '/morning-brief', label: 'Morning Brief' },
+  { to: '/discovery-library', icon: '📚', label: 'Discovery Library', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/firm-brain', icon: '🧠', label: 'Firm Brain', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/morning-brief', icon: '🌅', label: 'Morning Brief' },
   { separator: true, label: 'Manage' },
-  { to: '/cases', label: 'Cases' },
-  { to: '/records', label: 'Records' },
-  { to: '/records-followup', label: 'Follow-Up Queue', roles: ['admin', 'supervisor', 'paralegal'] },
-  { to: '/attorney-queue', label: 'Attorney Queue' },
-  { to: '/capacity', label: 'Capacity' },
-  { to: '/subpoena-manager', label: 'Subpoenas', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
-  { to: '/knowledge-base', label: 'Knowledge Base', roles: ['admin', 'supervisor'] },
-  { to: '/integrations', label: 'Integrations', roles: ['admin'] },
-  { to: '/settings', label: 'Settings' },
+  { to: '/cases', icon: '📂', label: 'Cases' },
+  { to: '/records', icon: '📋', label: 'Records' },
+  { to: '/work-queue', icon: '⚡', label: 'Work Queue', roles: ['admin', 'supervisor', 'paralegal', 'attorney'] },
+  { to: '/attorney-queue', icon: '⚖️', label: 'Attorney Queue' },
+  { to: '/records-followup', icon: '📬', label: 'Follow-Up Queue', roles: ['admin', 'supervisor', 'paralegal'] },
+  { to: '/capacity', icon: '📊', label: 'Capacity' },
+  { to: '/settings', icon: '⚙️', label: 'Settings' },
 ];
 
 const sidebarStyle = {
@@ -99,6 +97,7 @@ const contentStyle = {
 export default function Layout({ children }) {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
+  const { activeCase } = useActiveCase();
   const [criticalCount, setCriticalCount] = useState(0);
 
   useEffect(() => {
@@ -121,8 +120,16 @@ export default function Layout({ children }) {
           {navItems
             .filter((item) => !item.roles || item.roles.includes(user?.role))
             .map((item, idx) => item.separator ? (
-            <div key={`sep-${idx}`} style={{ padding: '12px 20px 4px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>
-              {item.label}
+            <div key={`sep-${idx}`}>
+              <div style={{ padding: '12px 20px 4px', fontSize: '0.7rem', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'rgba(255,255,255,0.4)' }}>
+                {item.label}
+              </div>
+              {item.showActiveCase && activeCase && (
+                <div style={{ padding: '4px 20px 8px', fontSize: '0.8rem', color: 'rgba(255,255,255,0.7)', lineHeight: 1.3 }}>
+                  <div style={{ fontWeight: 600, color: 'var(--white)' }}>{activeCase.plaintiff_name || activeCase.name}</div>
+                  {activeCase.case_number && <div style={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.5)' }}>{activeCase.case_number}</div>}
+                </div>
+              )}
             </div>
             ) : (
             <NavLink
@@ -131,6 +138,7 @@ export default function Layout({ children }) {
               end={item.to === '/'}
               style={({ isActive }) => (isActive ? linkActive : linkBase)}
             >
+              {item.icon && <span style={{ marginRight: 8 }}>{item.icon}</span>}
               {item.label}
               {item.to === '/work-queue' && criticalCount > 0 && (
                 <span style={{ marginLeft: 8, background: 'var(--red)', color: '#fff', borderRadius: '50%', width: 20, height: 20, display: 'inline-flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 700 }}>
